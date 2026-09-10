@@ -55,6 +55,55 @@
 | [harness/collect.sh](04_k1_stage_timing/harness/collect.sh) | 顺序执行两种计时版的naive对拍、阶段计时及C32 memcheck | 需要GPU；输出对拍、计时和阶段数据。现已补入C32插桩版的变长用例memcheck，输出 `analysis/memcheck.json/log`；需要compute-sanitizer |
 | [analysis/report.py](04_k1_stage_timing/analysis/report.py) | 读取本轮阶段、完整计时和两版naive JSON，生成分目录阶段报告 | 在collect之后执行；覆盖该目录的 `REPORT.md`，不更新 `profile/REPORT.md`，也不自动追加单独memcheck结论 |
 
+## 原 C16 baseline：从 tag 构建两处依赖
+
+原 C16 baseline 使用 **`baseline` tag**，对应 KDA commit **`1ce47ea3bb22c84eb9cc665028399cf35e8ffb0b`（`1ce47ea`，2026-07-29，UTC）**。`/home/lcpu/60990375/topic7-envs/baseline` 只是本次实验存放该版本源码和普通基线二进制的位置，不要求保留完整 Git worktree。
+
+| 引用入口 | 实际依赖 | 重建方式 |
+|---|---|---|
+| [benchmarks/bench_c32_vs_c16.py](../benchmarks/bench_c32_vs_c16.py) 的 `BASELINE` | 未插桩的 C16 `.so`，当前路径为 `/home/lcpu/60990375/topic7-envs/baseline/flash_kda_C.cpython-312-x86_64-linux-gnu.so` | 从固定 commit 导出 `csrc/`，编译普通扩展，并把 `BASELINE` 改为实际生成的 `.so` 路径。其他 profiling 脚本复用该 benchmark 的基线配置。 |
+| [04_k1_stage_timing/harness/build.py](04_k1_stage_timing/harness/build.py) 的 C16 `source` | 固定 commit 的完整 `csrc/`，包括编译入口及其头文件；当前 `source` 为 `/home/lcpu/60990375/topic7-envs/baseline` | 把 C16 `source` 改为导出目录；脚本生成独立插桩源码，复用 `01_c32_implementation/build.py` 编译，输出 `04_k1_stage_timing/build_C16/flash_kda_C.so`。 |
+
+可在 **rescale 仓库根目录**从 tag 导出源码，无需创建 worktree。以下命令仅用于说明复现步骤；本地已有 tag 时可跳过 fetch：
+
+```bash
+git fetch origin tag baseline
+# 确认输出为 1ce47ea3bb22c84eb9cc665028399cf35e8ffb0b。
+git rev-parse "refs/tags/baseline^{commit}"
+mkdir -p profile/baseline
+git archive refs/tags/baseline csrc | tar -x -C profile/baseline
+```
+
+普通 C16 扩展可复用现有构建脚本，只在内存中替换源码根目录和输出目录，不修改 C32 源码或构建脚本。使用现有 CUDA/PyTorch 环境运行：
+
+```bash
+python - <<'PYBASELINE'
+from pathlib import Path
+
+baseline = Path('profile/baseline').resolve()
+script = Path('profile/01_c32_implementation/build.py')
+code = script.read_text()
+code = code.replace('root = Path(__file__).resolve().parents[2]',
+                    f'root = Path({str(baseline)!r})')
+code = code.replace("build = root / 'profile/01_c32_implementation/build'",
+                    "build = root / 'build'")
+exec(compile(code, str(script), 'exec'), {'__name__': '__main__'})
+PYBASELINE
+```
+
+输出为 `profile/baseline/build/flash_kda_C.so`。将 benchmark 的 `BASELINE` 指向该文件，将阶段计时构建的 C16 `source` 指向 `profile/baseline` 的绝对路径，再按本文的阶段计时顺序运行：
+
+```bash
+mkdir -p profile/04_k1_stage_timing/analysis
+python profile/04_k1_stage_timing/harness/build.py
+```
+
+阶段构建在生成目录修改 `fwd_kernel1.cuh`、`fwd_launch.cu` 和 `flash_kda.cpp`，插入9个时间戳采样点并提供Python读取接口；其他基线源码使用软链接。因此重新编译仍需保留导出的 `csrc/`，或先重新导出。普通基线与插桩版是不同产物，不能互相替代。
+
+构建依赖沿用 [01_c32_implementation/build.py](01_c32_implementation/build.py)：CUDA/PyTorch、Python开发头文件和CUTLASS；当前目标为 `sm_103a`，CUTLASS与Python头文件仍使用实验机器的绝对路径，换环境需调整。重建时记录依赖版本、编译参数及新二进制SHA256，不能假定新产物与报告中的历史哈希相同。
+
+版本管理只需保留构建方法、固定commit和依赖说明；导出的 `profile/baseline/` 源码及编译产物可作为本地产物忽略，无需上传整个baseline worktree。上述路径调整需另行执行，现有两个脚本仍引用 `topic7-envs/baseline`。
+
 ## 参考实现获取与配置
 
 参考实现使用课程材料 **assignment02 下的 `fla_kda_ref/`**。从课程仓库或作业材料中取得该目录，保持内容不变；本次实验的相对位置为 `assignment02/team/c1_flashkda/fla_kda_ref/`。对拍调用其中的 `naive.py`，不要替换成其他版本的FLA参考。

@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Reproduce this directory's historical LB8 experiment:
+# 1. Change only csrc/smxx/fwd_kernel1.cuh from
+#    __launch_bounds__(NumThreads, 4) to __launch_bounds__(NumThreads, 8).
+# 2. Rebuild with: python profile/01_c32_implementation/build.py
+# 3. Run this script. It loads that default binary; editing source alone is insufficient.
+# Restore the source to 4 and rebuild afterwards to restore the current default.
+# Keep rescale=2^-96 and all other settings unchanged. This script does not edit source.
 cd /home/lcpu/60990375/kda-chunk32-baseline
 run_dir=profile/02_slowdown_diagnosis
 mkdir -p "$run_dir/analysis" "$run_dir/reports"

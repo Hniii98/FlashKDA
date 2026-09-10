@@ -83,3 +83,5 @@ C32的绝对阶段占比中，gate/cumsum约23.4%，Neumann约14.2%，decay约9.
 | C32 | 64 | [1024, 1024, 1024, 1024, 1024, 1024, 1024, 1024] | 1425.25 | 0.00343433461 | 0.00871014595 | 0.00462786221 |
 
 
+
+复现入口更新：`harness/collect.sh` 现已包含上述C32插桩版变长用例的memcheck命令，使用现有对拍文件，输出 `analysis/memcheck.json` 和 `analysis/memcheck.log`。本次仅补齐命令，未重新执行GPU实验。

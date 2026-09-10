@@ -9,3 +9,5 @@ for v in C16 C32; do
  "$py" "$r/harness/compare.py" "$r/build_$v/flash_kda_C.so" --ref-dir "$ref" --output "$r/analysis/naive_$v.json" > "$r/analysis/naive_$v.log" 2>&1
 done
 "$py" "$r/harness/run.py" --mode timing > "$r/analysis/timing.log" 2>&1
+# Reproduce the C32 instrumentation safety check on the existing varlen case.
+compute-sanitizer --tool memcheck --error-exitcode 99 "$py" "$r/harness/compare.py" "$r/build_C32/flash_kda_C.so" --ref-dir "$ref" --heads 96 --lengths 1300 547 2048 963 271 3063 --output "$r/analysis/memcheck.json" > "$r/analysis/memcheck.log" 2>&1

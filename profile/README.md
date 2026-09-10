@@ -52,14 +52,33 @@
 | [harness/build.py](04_k1_stage_timing/harness/build.py) | 从原C16和当前C32生成独立插桩构建；C32使用LB4，在现有同步边界记录时间戳 | 需要原C16源码、当前C32和现有构建环境；生成 `harness/C16/`、`harness/C32/`、`build_C16/`、`build_C32/`、补丁和构建清单；不改原源码 |
 | [harness/compare.py](04_k1_stage_timing/harness/compare.py) | 预加载指定计时版并运行公共naive对拍 | 首个参数是 `.so`；为C16补充脚本所需默认参数元数据，并将输出metadata标为chunk=16；不向C16传入scale关键字 |
 | [harness/run.py](04_k1_stage_timing/harness/run.py) | 测插桩前后完整forward/K1/K2、采集八阶段延迟，并检查主形状output/state逐元素一致性 | 需要原C16、独立未插桩LB4及两种计时版；输出 `runtime_ablation.json`、`stages.json`、原始 `.pt` 样本与trace |
-| [harness/collect.sh](04_k1_stage_timing/harness/collect.sh) | 顺序执行两种计时版的naive对拍及阶段计时 | 需要GPU；输出对拍、计时和阶段数据。此脚本不包含memcheck，原实验的memcheck是单独运行的 |
+| [harness/collect.sh](04_k1_stage_timing/harness/collect.sh) | 顺序执行两种计时版的naive对拍、阶段计时及C32 memcheck | 需要GPU；输出对拍、计时和阶段数据。现已补入C32插桩版的变长用例memcheck，输出 `analysis/memcheck.json/log`；需要compute-sanitizer |
 | [analysis/report.py](04_k1_stage_timing/analysis/report.py) | 读取本轮阶段、完整计时和两版naive JSON，生成分目录阶段报告 | 在collect之后执行；覆盖该目录的 `REPORT.md`，不更新 `profile/REPORT.md`，也不自动追加单独memcheck结论 |
+
+## 参考实现获取与配置
+
+参考实现使用课程材料 **assignment02 下的 `fla_kda_ref/`**。从课程仓库或作业材料中取得该目录，保持内容不变；本次实验的相对位置为 `assignment02/team/c1_flashkda/fla_kda_ref/`。对拍调用其中的 `naive.py`，不要替换成其他版本的FLA参考。
+
+直接运行对拍文件时，把 `--ref-dir` 指向含有 `naive.py` 的目录，例如：
+
+```bash
+export REF_DIR=/path/to/assignment02/team/c1_flashkda/fla_kda_ref
+python tests/compare_naive.py --ref-dir "$REF_DIR" --output profile/01_c32_implementation/naive_default_full_recheck.json
+```
+
+现有shell脚本仍使用实验机器上的参考路径；换环境时还需同步修改脚本的 `ref`、`ref_dir` 或 `--ref-dir`，仅设置REF_DIR不会自动覆盖这些路径。
+
+## 02历史LB8实验的复现说明
+
+02报告对应launch bounds=8。运行前，仅将 `csrc/smxx/fwd_kernel1.cuh` 中的 `__launch_bounds__(NumThreads, 4)` 改为 `__launch_bounds__(NumThreads, 8)`，并执行 `python profile/01_c32_implementation/build.py` 重建。然后运行02的collect和解析脚本。仅改源码而不重建，仍会运行旧二进制。
+
+采集结束后，将参数恢复为4并重建，以恢复当前默认版本；rescale及其他设置保持不变。对应说明也已写入02的collect脚本注释，脚本本身不会自动修改源码。原实验的绝对耗时取决于设备运行状态，重跑用于核验趋势和结论。
 
 ## 建议运行顺序
 
 1. 配好既有CUDA/PyTorch环境、CUTLASS、原C16源码/二进制与未修改参考。
 2. 执行 `01_c32_implementation/build.py`，再运行公共对拍和benchmark；按需运行诊断或sweep。
-3. 要复现成本定位，执行对应collect和parse_reports。
+3. 要复现02的历史成本定位，先把K1 launch bounds从4改为8并重建默认C32，再执行对应collect和parse_reports；完成后改回4并再次重建。
 4. 要复现launch bounds，先build_all，再collect，最后parse_reports。
 5. 要复现阶段计时，先完成LB4构建，再执行阶段build、collect，最后按需生成分目录报告。
 

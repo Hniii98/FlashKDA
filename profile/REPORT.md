@@ -93,11 +93,11 @@
 仅构建候选，复用已有 candidate-venv、Python 头文件和原仓库 CUTLASS 头文件，不安装或覆盖原 baseline。
 
 ```bash
-PATH=/home/lcpu/60990375/topic7-envs/candidate-venv/bin:$PATH /home/lcpu/60990375/topic7-envs/candidate-venv/bin/python profile/c32/build.py
-srun --partition=gpu --ntasks=1 --gpus=1 --cpus-per-task=8 --time=00:20:00 /home/lcpu/60990375/topic7-envs/candidate-venv/bin/python tests/compare_naive.py --ref-dir /home/lcpu/60990375/wmhpc-training-camp-x-lcpu-ai-infra-seminars/assignment02/team/c1_flashkda/fla_kda_ref --diagnostics --rescale 1 --inverse-rescale 1 --output profile/c32/naive_rescale1.json
+PATH=/home/lcpu/60990375/topic7-envs/candidate-venv/bin:$PATH /home/lcpu/60990375/topic7-envs/candidate-venv/bin/python profile/01_c32_implementation/build.py
+srun --partition=gpu --ntasks=1 --gpus=1 --cpus-per-task=8 --time=00:20:00 /home/lcpu/60990375/topic7-envs/candidate-venv/bin/python tests/compare_naive.py --ref-dir /home/lcpu/60990375/wmhpc-training-camp-x-lcpu-ai-infra-seminars/assignment02/team/c1_flashkda/fla_kda_ref --diagnostics --rescale 1 --inverse-rescale 1 --output profile/01_c32_implementation/naive_rescale1.json
 ```
 
-诊断命令见 [run_diagnostics.sh](c32/run_diagnostics.sh)。构建日志为 build.log（本地文件：`c32/build.log`）。编译器报告 K1 有寄存器 spill；本版按约束保留原 launch bounds，未据此调整设置或声称性能收益。
+诊断命令见 [run_diagnostics.sh](01_c32_implementation/run_diagnostics.sh)。构建日志为 build.log（本地文件：`c32/build.log`）。编译器报告 K1 有寄存器 spill；本版按约束保留原 launch bounds，未据此调整设置或声称性能收益。
 
 <a id="c32-sweep"></a>
 
@@ -161,7 +161,7 @@ srun --partition=gpu --ntasks=1 --gpus=1 --cpus-per-task=8 --time=00:20:00 /home
 #### 复现
 
 ```bash
-srun --partition=gpu --ntasks=1 --gpus=1 --cpus-per-task=8 --time=00:20:00 bash profile/c32/run_sweep.sh
+srun --partition=gpu --ntasks=1 --gpus=1 --cpus-per-task=8 --time=00:20:00 bash profile/01_c32_implementation/run_sweep.sh
 ```
 
 本轮 kernel 二进制 SHA256：`99ea3737d623e1ec192f7b444305d9d37ecf2cd35472fd212faeb7b53af1a25f`。与 C32 第一版相同，没有重编译 kernel。
@@ -270,7 +270,7 @@ results.json（本地文件：`c32/benchmark/results.json`） 保存完整轮次
 
 二进制：
 - C16：`/home/lcpu/60990375/topic7-envs/baseline/flash_kda_C.cpython-312-x86_64-linux-gnu.so`，SHA256 `d5f324a698d7811730c3b55d3badc8bd92819634dddd239524a58d01e95ce4b1`。
-- C32：`/home/lcpu/60990375/kda-chunk32-baseline/profile/c32/build/flash_kda_C.so`，SHA256 `fb809f65e9a12d1cf123a633f88569ad837a643f01359180f5a151ecab4e3d98`。
+- C32：`/home/lcpu/60990375/kda-chunk32-baseline/profile/01_c32_implementation/build/flash_kda_C.so`，SHA256 `fb809f65e9a12d1cf123a633f88569ad837a643f01359180f5a151ecab4e3d98`。
 
 ```bash
 srun --partition=gpu --ntasks=1 --gpus=1 --cpus-per-task=8 --time=00:20:00 /home/lcpu/60990375/topic7-envs/candidate-venv/bin/python benchmarks/bench_c32_vs_c16.py

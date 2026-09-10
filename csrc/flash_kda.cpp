@@ -1,13 +1,14 @@
 #include <torch/extension.h>
 #include <c10/cuda/CUDAStream.h>
 #include "fwd.h"
+#include <cmath>
 
 int64_t get_workspace_size(
     int64_t T_total,
     int64_t H,
     int64_t N = 1
 ) {
-    constexpr int CHUNK = 16;
+    constexpr int CHUNK = 32;
     constexpr int D = 128;
 
     // Upper bound: each of N sequences adds at most 1 extra tile vs floor division
@@ -39,8 +40,12 @@ void fwd(
     double lower_bound,
     std::optional<torch::Tensor> initial_state = std::nullopt,
     std::optional<torch::Tensor> final_state = std::nullopt,
-    std::optional<torch::Tensor> cu_seqlens = std::nullopt
+    std::optional<torch::Tensor> cu_seqlens = std::nullopt,
+    float rescale = kDefaultRescale,
+    float inverse_rescale = kDefaultInverseRescale
 ) {
+    TORCH_CHECK(std::isfinite(rescale) && rescale > 0, "rescale must be finite and positive");
+    TORCH_CHECK(std::isfinite(inverse_rescale) && inverse_rescale > 0, "inverse_rescale must be finite and positive");
     TORCH_CHECK(q.is_cuda() && k.is_cuda() && v.is_cuda() && g.is_cuda() && beta.is_cuda() && out.is_cuda() && workspace.is_cuda(),
                 "all tensors must be on CUDA");
     TORCH_CHECK(q.is_contiguous() && k.is_contiguous() && v.is_contiguous() && g.is_contiguous() && beta.is_contiguous() && out.is_contiguous() && workspace.is_contiguous(),
@@ -135,7 +140,7 @@ void fwd(
 
     cudaStream_t stream = at::cuda::getCurrentCUDAStream().stream();
 
-    constexpr int CHUNK = 16;
+    constexpr int CHUNK = 32;
 
     // Get state pointers (nullptr if not present)
     void const* initial_state_raw = has_state_in ? initial_state->data_ptr() : nullptr;
@@ -187,7 +192,7 @@ void fwd(
             initial_state_raw, scale_f, final_state_raw, out_ptr, \
             workspace_ptr, total_tiles, \
             int(T_total), int(H), int(N_val), cu_seqlens_dev, \
-            A_log_ptr, dt_bias_ptr, gate_scale, stream)
+            A_log_ptr, dt_bias_ptr, gate_scale, rescale, inverse_rescale, stream)
 
     #define DISPATCH_STATE(VL) \
         if (!has_state_in && !has_state_out) { \
@@ -217,13 +222,17 @@ void fwd(
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+    m.attr("DEFAULT_RESCALE") = kDefaultRescale;
+    m.attr("DEFAULT_INVERSE_RESCALE") = kDefaultInverseRescale;
     m.def("fwd", &fwd, "FlashKDA Forward (CUDA)",
         py::arg("q"), py::arg("k"), py::arg("v"), py::arg("g"), py::arg("beta"),
         py::arg("scale"), py::arg("out"),
         py::arg("workspace"),
         py::arg("A_log"), py::arg("dt_bias"), py::arg("lower_bound"),
         py::arg("initial_state") = py::none(), py::arg("final_state") = py::none(),
-        py::arg("cu_seqlens") = py::none());
+        py::arg("cu_seqlens") = py::none(),
+        py::arg("rescale") = kDefaultRescale,
+        py::arg("inverse_rescale") = kDefaultInverseRescale);
     m.def("get_workspace_size",
         static_cast<int64_t(*)(int64_t, int64_t, int64_t)>(&get_workspace_size),
         "Get workspace size in bytes",

@@ -2,6 +2,7 @@
 #include <cuda_runtime.h>
 
 #include <cutlass/bfloat16.h>
+#include "smxx/fwd_config.h"
 
 template <int D, bool HasStateIn = true, bool HasStateOut = true, bool StateFP32 = false, bool IsVarlen = true>
 void launch_fwd(
@@ -23,5 +24,7 @@ void launch_fwd(
     float const* A_log_ptr,
     float const* dt_bias_ptr,
     float gate_scale,
+    float rescale,
+    float inverse_rescale,
     cudaStream_t stream
 );

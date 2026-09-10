@@ -23,12 +23,14 @@ void launch_fwd(
     float const* A_log_ptr,
     float const* dt_bias_ptr,
     float gate_scale,
+    float rescale,
+    float inverse_rescale,
     cudaStream_t stream
 ) {
     using BF16 = cutlass::bfloat16_t;
     constexpr int kInputStages = 3;
     constexpr int kOutputStages = 2;
-    constexpr int CHUNK = 16;
+    constexpr int CHUNK = 32;
 
     using K1L = K1Layouts<D, CHUNK>;
     using K2L = K2Layouts<D, CHUNK>;
@@ -175,7 +177,7 @@ void launch_fwd(
             tma_store_ws_kd, tma_store_ws_qd, tma_store_ws_kr,
             tma_store_ws_gt, tma_store_ws_inv, tma_store_ws_mqk,
             scale, T_total, H, N, cu_seqlens_ptr, total_tiles,
-            A_log_ptr, gate_scale, ws_tile_prefix
+            A_log_ptr, gate_scale, ws_tile_prefix, rescale, inverse_rescale
         );
     }
 #endif
@@ -210,7 +212,7 @@ void launch_fwd(
             tma_load_initial_state,
             tma_store_final_state,
             tma_store_out,
-            out_ptr, T_total, H, N, cu_seqlens_ptr, total_tiles
+            out_ptr, T_total, H, N, cu_seqlens_ptr, total_tiles, rescale
         );
     }
 #endif
@@ -223,7 +225,7 @@ void launch_fwd(
         cutlass::bfloat16_t const*, cutlass::bfloat16_t const*, \
         cutlass::bfloat16_t const*, void const*, float, void*, \
         cutlass::bfloat16_t*, void*, int, int, int, int, \
-        int64_t const*, float const*, float const*, float, cudaStream_t);
+        int64_t const*, float const*, float const*, float, float, float, cudaStream_t);
 
 #define INSTANTIATE_STATE_VARIANTS(VL) \
     INSTANTIATE_LAUNCH_FWD(128, true,  true,  false, VL) \

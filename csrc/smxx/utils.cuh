@@ -1,5 +1,7 @@
 #pragma once
 
+#include "fwd_config.h"
+
 #include <cuda_runtime.h>
 #include <cuda_fp16.h>
 
@@ -186,129 +188,104 @@ CUTLASS_DEVICE void mma_m16n16_bf16bf16fp16_1warp(
     cooperative_gemm(mma_tid, mma, 1.0f, A, B, 0.0f, C, cute::identity{}, cute::identity{}, cute::identity{}, sC_store_op, SM75_U32x4_LDSM_N{}, SM75_U32x4_LDSM_N{}, SM75_U32x4_LDSM_N{}, SM90_U32x4_STSM_N{});
 }
 
-template <class TensorL, class TensorINV_fp16, class TensorINV_bf16>
+// Same finite Neumann expansion as C16, tiled over the full CHUNK matrix.
+// C/A register formats coincide for this FP16 atom; MOVM supplies B format.
+template <int CHUNK, class TensorL, class TensorINV_fp16, class TensorINV_bf16>
 CUTLASS_DEVICE void neumann_inv_fused_1warp(
-    TensorL const& L_fp16,
-    TensorINV_fp16 const& INV_fp16,
-    TensorINV_bf16& INV_bf16_out,
-    int tid
+    TensorL const& L_fp16, TensorINV_fp16 const& INV_fp16,
+    TensorINV_bf16& INV_bf16_out, int tid, float inverse_rescale
 ) {
     using FP16 = cutlass::half_t;
     using BF16 = cutlass::bfloat16_t;
-
-    auto mma = make_tiled_mma(
-        SM80_16x8x16_F16F16F16F16_TN{},
-        Layout<Shape<_1,_1>>{},
-        Tile<_16,_16,_16>{}
-    );
-    if (tid >= int(size(mma))) return;
-
-    auto thr_mma = mma.get_slice(tid);
-
-    auto smem_copy_A = make_tiled_copy_A(Copy_Atom<SM75_U32x4_LDSM_N, FP16>{}, mma);
-    auto thr_copy_A = smem_copy_A.get_thread_slice(tid);
-
-    Tensor tCrL = thr_mma.partition_fragment_A(L_fp16);
-    {
-        Tensor tmp = make_fragment_like<FP16>(tCrL);
-        copy(smem_copy_A, thr_copy_A.partition_S(L_fp16), thr_copy_A.retile_D(tmp));
-        cute::transform(tmp, tCrL, cute::identity{});
+    constexpr int B = CHUNK / 16;
+    static_assert(CHUNK >= 16 && (CHUNK & (CHUNK - 1)) == 0);
+    if (tid >= 32) return;
+    auto mma = make_tiled_mma(SM80_16x8x16_F16F16F16F16_TN{},
+                             Layout<Shape<_1,_1>>{}, Tile<_16,_16,_16>{});
+    auto thr = mma.get_slice(tid);
+    auto cp = make_tiled_copy_A(Copy_Atom<SM75_U32x4_LDSM_N, FP16>{}, mma);
+    auto tcp = cp.get_slice(tid);
+    uint32_t power[B][B][4], inv[B][B][4], next[B][B][4], product[B][B][4];
+    #pragma unroll
+    for (int m = 0; m < B; ++m) {
+        #pragma unroll
+        for (int n = 0; n < B; ++n) {
+            auto l = local_tile(L_fp16, make_shape(_16{}, _16{}), make_coord(m,n));
+            auto v = local_tile(INV_fp16, make_shape(_16{}, _16{}), make_coord(m,n));
+            auto f = thr.partition_fragment_A(l);
+            auto tmp = make_fragment_like<FP16>(f);
+            copy(cp, tcp.partition_S(l), tcp.retile_D(tmp));
+            cute::transform(tmp, f, cute::identity{});
+            #pragma unroll
+            for (int r=0;r<4;++r) power[m][n][r]=reinterpret_cast<uint32_t*>(&f(0))[r];
+            copy(cp, tcp.partition_S(v), tcp.retile_D(tmp));
+            cute::transform(tmp, f, cute::identity{});
+            #pragma unroll
+            for (int r=0;r<4;++r) inv[m][n][r]=reinterpret_cast<uint32_t*>(&f(0))[r];
+        }
     }
-
-    Tensor tCrINV = thr_mma.partition_fragment_A(INV_fp16);
-    {
-        Tensor tmp = make_fragment_like<FP16>(tCrINV);
-        copy(smem_copy_A, thr_copy_A.partition_S(INV_fp16), thr_copy_A.retile_D(tmp));
-        cute::transform(tmp, tCrINV, cute::identity{});
+    auto multiply = [&](auto const& a, auto const& b, auto& dst) {
+        #pragma unroll
+        for (int m=0;m<B;++m) {
+            #pragma unroll
+            for (int n=0;n<B;++n) {
+                #pragma unroll
+                for (int r=0;r<4;++r) dst[m][n][r]=0;
+                #pragma unroll
+                for (int k=0;k<B;++k) {
+                    uint32_t bt[4];
+                    #pragma unroll
+                    for (int r=0;r<4;++r) SM75_U32x1_MOVM_T::copy(b[k][n][r],bt[r]);
+                    auto* d=dst[m][n]; auto const* x=a[m][k];
+                    SM80_16x8x16_F16F16F16F16_TN::fma(d[0],d[1],x[0],x[1],x[2],x[3],bt[0],bt[1],d[0],d[1]);
+                    SM80_16x8x16_F16F16F16F16_TN::fma(d[2],d[3],x[0],x[1],x[2],x[3],bt[2],bt[3],d[2],d[3]);
+                }
+            }
+        }
+    };
+    // I-L -> S3 -> S7 -> S15 -> S31 (for CHUNK=32).
+    #pragma unroll
+    for (int p=2;p<CHUNK;p*=2) {
+        multiply(power,power,next);
+        multiply(inv,next,product);
+        #pragma unroll
+        for (int m=0;m<B;++m) {
+            #pragma unroll
+            for (int n=0;n<B;++n) {
+                #pragma unroll
+                for (int r=0;r<4;++r) {
+                    union Pack { uint32_t u; __half2 h; } a,b;
+                    a.u=inv[m][n][r]; b.u=product[m][n][r];
+                    a.h=__hadd2(a.h,b.h); inv[m][n][r]=a.u;
+                    power[m][n][r]=next[m][n][r];
+                }
+            }
+        }
     }
-
-    uint32_t* L_a = reinterpret_cast<uint32_t*>(&tCrL(0));
-    uint32_t* INV_a = reinterpret_cast<uint32_t*>(&tCrINV(0));
-
-    uint32_t Lpow_c[4], Lpow_b[4], INV_c[4], tmp_a[4], mm_c[4];
-
-    auto clear_u32x4 = [](uint32_t* x) {
-        x[0] = x[1] = x[2] = x[3] = 0;
-    };
-
-    auto add_fp16x2_u32x4 = [] (uint32_t* dst, uint32_t const* src) {
-        union U32H2 { uint32_t u; __half2 h2; };
-        U32H2 a0{dst[0]}, b0{src[0]}, a1{dst[1]}, b1{src[1]};
-        U32H2 a2{dst[2]}, b2{src[2]}, a3{dst[3]}, b3{src[3]};
-        a0.h2 = __hadd2(a0.h2, b0.h2);
-        a1.h2 = __hadd2(a1.h2, b1.h2);
-        a2.h2 = __hadd2(a2.h2, b2.h2);
-        a3.h2 = __hadd2(a3.h2, b3.h2);
-        dst[0] = a0.u; dst[1] = a1.u; dst[2] = a2.u; dst[3] = a3.u;
-    };
-
-    auto transpose_u32x4 = [](uint32_t const* src, uint32_t* dst) {
-        SM75_U32x1_MOVM_T::copy(src[0], dst[0]);
-        SM75_U32x1_MOVM_T::copy(src[1], dst[1]);
-        SM75_U32x1_MOVM_T::copy(src[2], dst[2]);
-        SM75_U32x1_MOVM_T::copy(src[3], dst[3]);
-    };
-
-    auto copy_u32x4 = [](uint32_t const* src, uint32_t* dst) {
-        dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; dst[3] = src[3];
-    };
-
-    // 16x16 MMA = two m16n8k16 atoms along N
-    auto mma_16x16 = [](uint32_t* d, uint32_t const* a, uint32_t const* b, uint32_t const* c) {
-        SM80_16x8x16_F16F16F16F16_TN::fma(d[0], d[1], a[0], a[1], a[2], a[3], b[0], b[1], c[0], c[1]);
-        SM80_16x8x16_F16F16F16F16_TN::fma(d[2], d[3], a[0], a[1], a[2], a[3], b[2], b[3], c[2], c[3]);
-    };
-
-    // L^2 = L × L
-    transpose_u32x4(L_a, Lpow_b);
-    clear_u32x4(Lpow_c);
-    mma_16x16(Lpow_c, L_a, Lpow_b, Lpow_c);
-
-    // INV += INV × L^2
-    transpose_u32x4(Lpow_c, Lpow_b);
-    copy_u32x4(INV_a, INV_c);
-    clear_u32x4(mm_c);
-    mma_16x16(mm_c, INV_a, Lpow_b, mm_c);
-    add_fp16x2_u32x4(INV_c, mm_c);
-
-    // L^4 = L^2 × L^2
-    copy_u32x4(Lpow_c, tmp_a);
-    clear_u32x4(Lpow_c);
-    mma_16x16(Lpow_c, tmp_a, Lpow_b, Lpow_c);
-
-    // INV += INV × L^4
-    transpose_u32x4(Lpow_c, Lpow_b);
-    copy_u32x4(INV_c, tmp_a);
-    clear_u32x4(mm_c);
-    mma_16x16(mm_c, tmp_a, Lpow_b, mm_c);
-    add_fp16x2_u32x4(INV_c, mm_c);
-
-    // L^8 = L^4 × L^4
-    copy_u32x4(Lpow_c, tmp_a);
-    clear_u32x4(Lpow_c);
-    mma_16x16(Lpow_c, tmp_a, Lpow_b, Lpow_c);
-
-    // INV += INV × L^8
-    transpose_u32x4(Lpow_c, Lpow_b);
-    copy_u32x4(INV_c, tmp_a);
-    clear_u32x4(mm_c);
-    mma_16x16(mm_c, tmp_a, Lpow_b, mm_c);
-    add_fp16x2_u32x4(INV_c, mm_c);
-
-    // Store: convert C-format fp16 → bf16, write to smem
-    Tensor tCsC_mma = thr_mma.partition_C(INV_fp16);
-    Tensor tCrC = thr_mma.make_fragment_C(tCsC_mma);
-    uint32_t* C_regs = reinterpret_cast<uint32_t*>(&tCrC(0));
-    C_regs[0] = INV_c[0]; C_regs[1] = INV_c[1]; C_regs[2] = INV_c[2]; C_regs[3] = INV_c[3];
-
-    Tensor tCrC_bf16 = make_fragment_like<BF16>(tCrC);
-    cute::transform(tCrC, tCrC_bf16, [] __device__ (FP16 x) -> BF16 { return BF16(x); });
-
-    auto smem_tiled_store = make_tiled_copy_C(Copy_Atom<SM90_U32x4_STSM_N, BF16>{}, mma);
-    auto smem_thr_store = smem_tiled_store.get_slice(tid);
-    Tensor tCsC_st = smem_thr_store.partition_D(INV_bf16_out);
-    Tensor tCrC_st_view = smem_thr_store.retile_S(tCrC_bf16);
-    copy(smem_tiled_store, tCrC_st_view, tCsC_st);
+    auto st = make_tiled_copy_C(Copy_Atom<SM90_U32x4_STSM_N, BF16>{}, mma);
+    auto tst = st.get_slice(tid);
+    #pragma unroll
+    for (int m=0;m<B;++m) {
+        #pragma unroll
+        for (int n=0;n<B;++n) {
+            auto tile=local_tile(INV_bf16_out,make_shape(_16{},_16{}),make_coord(m,n));
+            auto f=thr.make_fragment_C(thr.partition_C(tile));
+            #pragma unroll
+            for (int r=0;r<4;++r) reinterpret_cast<uint32_t*>(&f(0))[r]=inv[m][n][r];
+            // Undo similarity before the original final FP16 -> BF16 cast.
+            if (inverse_rescale != 1.0f) {
+                auto coord=thr.partition_C(make_identity_tensor(make_shape(_16{},_16{})));
+                #pragma unroll
+                for (int e=0;e<size(f);++e) {
+                    int row=m*16+get<0>(coord(e)), col=n*16+get<1>(coord(e));
+                    f(e)=f(e)*FP16(powf(inverse_rescale,float(row-col)));
+                }
+            }
+            auto bf=make_fragment_like<BF16>(f);
+            cute::transform(f,bf,[] __device__ (FP16 x) { return BF16(x); });
+            copy(st,tst.retile_S(bf),tst.partition_D(tile));
+        }
+    }
 }
 
 // ==================== FP32 <-> BF16 state conversion in SMEM ====================
@@ -378,4 +355,3 @@ __device__ void smem_cvt_bf16_to_fp32(
         fp32_view(r1, c1) = bf16_to_f32(bf16_view(r1, c1));
     }
 }
-

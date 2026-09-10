@@ -2,7 +2,7 @@
 
 #include "utils.cuh"
 
-template <int D, int CHUNK = 16>
+template <int D, int CHUNK = 32>
 struct K1Layouts {
     using QKLayout = decltype(make_layout(make_shape(Int<CHUNK>{}, Int<D>{}), LayoutRight{}));
     using GLayout = decltype(make_layout(make_shape(Int<CHUNK>{}, Int<D>{}), LayoutRight{}));
@@ -11,7 +11,7 @@ struct K1Layouts {
         make_shape(Int<CHUNK>{}, Int<D>{}),
         LayoutLeft{}
     ));
-    using BetaSmemLayout = Layout<Shape<Int<32>>, Stride<Int<1>>>;
+    using BetaSmemLayout = Layout<Shape<Int<CHUNK + 8>>, Stride<Int<1>>>;
     using GTotalLayout = Layout<Shape<Int<D>>, Stride<Int<1>>>;
     using LMLayout = decltype(tile_to_shape(
         GMMA::Layout_K_INTER_Atom<cute::bfloat16_t>{},
@@ -116,7 +116,7 @@ template <
     int NumThreads,
     bool IsVarlen = true
 >
-__global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
+__global__ void __launch_bounds__(NumThreads, 4) _flash_kda_fwd_prepare(
     CUTE_GRID_CONSTANT TmaLoadQ const tma_load_q,
     CUTE_GRID_CONSTANT TmaLoadK const tma_load_k,
     CUTE_GRID_CONSTANT TmaLoadBeta const tma_load_beta,
@@ -136,7 +136,9 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     int total_tiles,
     float const* A_log_ptr,
     float gate_scale,
-    int const* tile_prefix
+    int const* tile_prefix,
+    float rescale = kDefaultRescale,
+    float inverse_rescale = kDefaultInverseRescale
 ) {
     // --- constants
     using BF16 = cutlass::bfloat16_t;
@@ -156,7 +158,7 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     using TMAGTotalSmemLayout = typename Layouts::TMAGTotalSmemLayout;
     constexpr uint32_t kTmaTransactionBytes =
         uint32_t(cute::cosize_v<QKLayout>) * uint32_t(3 * sizeof(BF16)) +  // q + k + g_bf16
-        uint32_t(32) * uint32_t(sizeof(BF16)) +  // beta (bf16, sigmoid fused)
+        uint32_t(cute::cosize_v<BetaSmemLayout>) * uint32_t(sizeof(BF16)) +  // beta (bf16, sigmoid fused)
         uint32_t(D) * uint32_t(sizeof(float));  // dt_bias
 
     // --- shared memory
@@ -266,7 +268,8 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     {
         constexpr int ELEMS_PER_THREAD = 8;
         constexpr int THREADS_PER_ROW = D / ELEMS_PER_THREAD;  // 16
-        int my_row = threadIdx.x / THREADS_PER_ROW;
+        for (int my_row = threadIdx.x / THREADS_PER_ROW; my_row < CHUNK;
+             my_row += NumThreads / THREADS_PER_ROW) {
         int my_col = (threadIdx.x % THREADS_PER_ROW) * ELEMS_PER_THREAD;
 
         BF16* q_smem = shared_storage.q.begin();
@@ -298,6 +301,7 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
         for (int i = 0; i < ELEMS_PER_THREAD; ++i) {
             q_smem[my_row * D + my_col + i] = BF16(q_vals[i] * q_inv);
             k_smem[my_row * D + my_col + i] = BF16(k_vals[i] * k_inv);
+        }
         }
     }
     __syncthreads();
@@ -414,7 +418,10 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
                     reg_g[tile_idx][v]  = r_g(0, v);
                     reg_q[tile_idx][v]  = r_q(0, v);
                     reg_k[tile_idx][v]  = r_k(0, v);
-                    reg_gt[tile_idx][v] = r_gt(v);
+                    // For nonidentity scaling, form exp(Gend)/s from log space
+                    // before exp(Gend) can underflow. The identity path is unchanged.
+                    reg_gt[tile_idx][v] = rescale == 1.0f ? r_gt(v) :
+                        ex2_approx_ftz_f32(g_tile(CHUNK - 1, col_base + t * 2 + v) - log2f(rescale));
                 }
             }
         }
@@ -449,7 +456,8 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
                     float g = reg_g[tile_idx][v];
                     BF16 q = reg_q[tile_idx][v];
                     BF16 k = reg_k[tile_idx][v];
-                    BF16 exp_cumsum = BF16(ex2_approx_ftz_f32(g));
+                    BF16 exp_cumsum = BF16(ex2_approx_ftz_f32(
+                        rescale == 1.0f ? g : g - log2f(rescale)));
                     r_qd(0, v) = q * exp_cumsum * BF16(scale);
                     r_kd(0, v) = k * exp_cumsum;
                 }
@@ -462,7 +470,8 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
                 for (int v = 0; v < 2; ++v) {
                     float g = reg_g[tile_idx][v];
                     BF16 k = reg_k[tile_idx][v];
-                    BF16 inv_cumsum = BF16(ex2_approx_ftz_f32(-g));
+                    BF16 inv_cumsum = BF16(ex2_approx_ftz_f32(
+                        rescale == 1.0f ? -g : -g + log2f(rescale)));
                     r_ki(0, v) = k * inv_cumsum;
                     r_kr(0, v) = k * inv_cumsum * BF16(reg_gt[tile_idx][v]);
                 }
@@ -490,11 +499,11 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     Tensor INV_fp16 = make_tensor(make_smem_ptr(reinterpret_cast<FP16*>(shared_storage.INV.begin())), LMLayout{});
 
 // tril_IL + INV = I - L (merged, same thread same element)
-    if (compute_tid < 256) {
+    for (int elem = compute_tid; elem < CHUNK * CHUNK; elem += NumThreads) {
         const int col_block_size = 8;
-        int block_idx = compute_tid / (CHUNK * col_block_size);
-        int i = (compute_tid / col_block_size) % CHUNK;
-        int j = compute_tid % col_block_size + block_idx * col_block_size;
+        int block_idx = elem / (CHUNK * col_block_size);
+        int i = (elem / col_block_size) % CHUNK;
+        int j = elem % col_block_size + block_idx * col_block_size;
         if (i <= j) {
             L_fp16(i, j) = FP16::bitcast(0);
         } else {
@@ -504,13 +513,16 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
             Mqk(i, j) = BF16::bitcast(0);
         }
         // INV = I - L (same thread reads L(i,j) it just wrote)
+        // Similarity transform Ls = D^-1 L D, D[i] = inverse_rescale^i.
+        if (inverse_rescale != 1.0f && i > j)
+            L_fp16(i, j) = L_fp16(i, j) * FP16(powf(inverse_rescale, float(j - i)));
         FP16 x = L_fp16(i, j);
         INV_fp16(i, j) = (i == j ? FP16(1.0f) - x : -x);
     }
     __syncthreads();
 
 // inv (Neumann series, fused in registers)
-    neumann_inv_fused_1warp(L_fp16, INV_fp16, INV, compute_tid);
+    neumann_inv_fused_1warp<CHUNK>(L_fp16, INV_fp16, INV, compute_tid, inverse_rescale);
     // Fence + sync combined: completion + TMA visibility
     cutlass::arch::fence_view_async_shared();
     __syncthreads();

@@ -1,3 +1,12 @@
+// K2 中文导读：一个 CTA 维护一条序列一个 head 的状态，按时间顺序消费 K1 系数。
+// 为对齐实际内存，定义 S 为 [V,K]（本实现 V=K=D=128），U/out 为 [CHUNK,V]。
+// 下文数学公式忽略 BF16/FP16/FP32 的中间舍入：
+//   R = diag(sigmoid(beta)) * (v - KD @ S^T)
+//   U = INV @ R
+//   out = QD @ S^T + Mqk @ U
+//   S_new = S * GT[None,:] + U^T @ KR
+// 第一项读取/衰减旧记忆，第二项加入当前 chunk 的修正；下一 chunk 必须用 S_new。
+// 阅读时先追这四行公式，再看 fragment 的 lane 映射与流水细节。
 #pragma once
 
 // TMA_DISABLE_ALL: when defined, disable load/store warps entirely
@@ -79,6 +88,8 @@ struct SharedStorageK2 {
     using LMLayout = typename Layouts::LMLayout;
     using MMALayout = typename Layouts::MMALayout;
 
+    // 跨 chunk 保留在 shared memory 的状态是 BF16；矩阵乘累加使用 FP32。
+    // 即使 API 接收/返回 FP32 state，内部仍会转换为 BF16，并非全程 FP32 递推。
     alignas(128) cute::ArrayEngine<BF16, cute::cosize_v<StateSmemLayout>> state_acc;
 
     struct InputStorage {
@@ -185,6 +196,10 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
     using SharedStorageT = SharedStorageK2<Layouts, InputStages, OutputStages>;
     SharedStorageT& shared_storage = *reinterpret_cast<SharedStorageT*>(shared_mem);
 
+    // 新概念：warp specialization = 同一个 block 中不同 warp 固定承担不同工作。
+    // warp 0~3 做 MMA；warp 4 负责加载；warp 5 负责写回。
+    // LOAD_QKG 是角色名，在 K2 实际加载的是 v/beta 和 K1 workspace。
+    // elect_one_sync 在每个 warp 中选一个线程发起 TMA，其余线程不重复发起。
     // --- warp specialization
     int warp_id = threadIdx.x / kWarpSize;
     WarpRole warp_role = WarpRole::NonParticipant;
@@ -212,6 +227,8 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
     );
 #endif
 
+    // 与 K1 不同，blockIdx.x 直接表示序列；时间循环在这个 CTA 内完成。
+    // 输入可提前搬运，但状态更新的时间依赖仍然存在，不能乱序计算 chunk。
     // --- per-block sequence info
     int seq_idx  = blockIdx.x;
     int head_idx = blockIdx.y;
@@ -320,6 +337,10 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
 #ifndef TMA_DISABLE_ALL
     __syncthreads();
 
+    // 对应 assignment02 4.3：输入缓冲循环复用三个 stage。
+    // producer_acquire 等待空槽；TMA 完成字节计数后，计算线程的 consumer_wait 才通过。
+    // consumer_release 宣告数据已用完；PipelineState 同时维护槽号和轮次/phase，
+    // 防止绕回同一槽时把上一轮的完成信号误认为这一轮。
     // --- LOAD warp: issue TMA loads for v, beta, and workspace intermediates
     if (warp_role == WarpRole::LOAD_QKG && lane_predicate) {
         Tensor g_v = tma_load_v.get_tma_tensor(make_shape(H, T_total, D));
@@ -422,8 +443,12 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
     }
 #endif
 
+    // 输出流水中，MMA 是 producer、STORE warp 是 consumer；输入流水则正好相反。
+    // 同一个线程组的 producer/consumer 身份取决于它参与的是哪条流水。
     // --- MMA warps
     if (warp_role == WarpRole::MMA) {
+        // 只会合 128 个计算线程。此分支不能随意换成 __syncthreads：
+        // LOAD/STORE warp 正在另一个分支中运行，不会来到这个会合点。
         cutlass::arch::NamedBarrier compute_barrier(kComputeThreads, 0);
 #ifndef TMA_DISABLE_ALL
         LoadPipelineState load_read;
@@ -433,6 +458,7 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
 
         for (int t = 0; t < t_tiles; ++t) {
 #ifndef TMA_DISABLE_ALL
+            // 先确保输出槽可写，再等本 chunk 输入到齐；之后才能访问对应 smem。
             store_pipeline.producer_acquire(out_write);
             load_pipeline.consumer_wait(load_read);
             int load_stage = load_read.index();
@@ -465,6 +491,9 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
 
             constexpr int PREFETCH = 1;
 
+// 对应 assignment02 M1 的 SM80 mma.sync：BF16 操作数、FP32 累加。
+            // 每 warp 负责 32 个 value 通道（两个 16 列块），四 warp 覆盖 V=128。
+            // LDSM 将 smem 数据分配到各 lane 的 fragment；STSM 做相反方向的写入。
             auto mma = make_tiled_mma(
                 MMA_Atom<SM80_16x8x16_F32BF16BF16F32_TN>{},
                 Layout<Shape<_1,_1>>{},
@@ -530,6 +559,8 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
             #pragma unroll
             for (int i = 0; i < 2; ++i) { out_acc[i] = thr_mma.make_fragment_C(tCrC_ref); clear(out_acc[i]); }
 
+            // 阶段 1：一起算 KD@S^T（旧状态对 value 的预测）和 QD@S^T（历史输出）。
+            // 两个 GEMM 复用同一份 state fragment；沿特征维 D 以 16 为步长归约。
             // ======== Phase 1: Dual GEMM k@s and q@s (k-loop, 2 blocks per warp) ========
             constexpr int K_BLOCKS = decltype(cute::size<1>(k_decayed))::value / 16;
 
@@ -586,6 +617,9 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
             BF16 beta0 = BF16(sigmoid_tanh_approx_f32(float(beta_tile(beta_smem_offset + group_id))));
             BF16 beta1 = BF16(sigmoid_tanh_approx_f32(float(beta_tile(beta_smem_offset + group_id + 8))));
 
+            // 阶段 3：真实 v 减去旧记忆预测，乘 beta 控制写入强度，再乘 INV，
+            // 一次解出 chunk 内 16 个 token 互相依赖的修正 U。
+            // MOVM_T 把结果 fragment 重排为下一次 MMA 的 B 操作数，避免写回 smem 再读。
             // ======== Phase 3: u = (v - u) * beta; u = INV @ u (per block) ========
             SFragT u_bf16[2];
             uint32_t u_b_regs[4];
@@ -622,6 +656,8 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
                 cute::transform(u_acc[i], u_bf16[i], [] __device__ (float x) { return BF16(x); });
             }
 
+            // 阶段 4：Mqk@U 是当前 chunk 内的贡献；加上阶段 1 的历史贡献得到 out。
+            // Mqk 已在 K1 做因果 mask，这里无需再做 softmax 或未来 token 屏蔽。
             // ======== Phase 4: Load Mqk, MOVM_T → tCrB_u_arr, Mqk@U + add out ========
             copy(smem_tiled_copy_A, smem_thr_copy_A.partition_S(Mqk), tCrAi_k_view);
             cute::transform(tCrAi_k, tCrA_k, cute::identity{});
@@ -656,6 +692,9 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
                 copy(smem_tiled_store_C, smem_thr_store_C.retile_S(out_bf16[i]), smem_thr_store_C.partition_D(out_block));
             }
 
+            // 阶段 6：用转置视图算 S_new^T = GT[:,None]*S^T + KR^T@U。
+            // s_acc_T 与 s_acc 指向同一块 smem，建立视图本身没有搬运整个矩阵。
+            // U 继续复用阶段 4 的寄存器；状态更新后写回 BF16，供下一 chunk 使用。
             // ======== Phase 6: s_acc update ========
             // s_acc[D, D] = s_acc * g_total + k_restored_t[D, 16] @ U[16, D]
             // Each warp handles columns [warp_id*32, (warp_id+1)*32] = 2 x 16x16 blocks
@@ -730,10 +769,13 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
                 }
             }
             }
+            // 四个计算 warp 都完成状态更新后，才能进入下一 chunk 读取完整新状态。
             compute_barrier.arrive_and_wait();
 
 #ifndef TMA_DISABLE_ALL
             cutlass::arch::fence_view_async_shared();
+            // 发布输出供 STORE warp 消费，再释放输入槽让 LOAD warp 预取后续 chunk。
+            // fence 已使普通 smem 写对异步 TMA 可见；commit 是流水就绪通知。
             store_pipeline.producer_commit(out_write);
             load_pipeline.consumer_release(load_read);
             ++load_read;
@@ -754,6 +796,8 @@ __global__ void __launch_bounds__(NumThreads) _flash_kda_fwd_recurrence(
 
             BF16* out_stage_ptr = shared_storage.output[stage].out.begin();
 
+            // 尾块只写有效 token：完整 16 行 TMA store 可能覆盖紧邻的下一条序列。
+            // 写回完成后才能 consumer_release，否则 MMA 可能提前覆盖 TMA 正在读取的槽。
             if (actual_len < CHUNK) {
                 // Manual store for tail tile to avoid overwriting next sequence
                 // Only one thread (lane_predicate) runs here, so loop over all D

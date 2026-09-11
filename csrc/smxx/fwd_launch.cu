@@ -1,3 +1,10 @@
+// 中文阅读入口（以训练营 assignment01/02 为知识基准）：
+// assignment01：grid/block/warp、寄存器/shared/global memory、tile、异步执行。
+// assignment02 M1/M2：mma.sync 的 fragment、ldmatrix 与 shared memory 布局；
+// M4：TMA + barrier + 多级缓冲。这里的 MMA 沿用 SM80 路径，没有使用 tcgen05/TMEM。
+// 本 .cu 是 host 端调度；真正的 __global__ 函数在下面两个 .cuh 中。
+// 阅读顺序：本文件的两次 launch -> K1 的阶段注释 -> K2 的阶段注释。
+// 新概念：KDA 用固定大小的状态矩阵保存历史；K1 预计算局部系数，K2 执行状态递推。
 #include "fwd.h"
 #include "fwd_kernel1.cuh"
 #include "fwd_kernel2.cuh"
@@ -26,6 +33,9 @@ void launch_fwd(
     cudaStream_t stream
 ) {
     using BF16 = cutlass::bfloat16_t;
+    // K2 输入三级、输出两级环形缓冲，对应 assignment02 4.3 的 stages。
+    // CHUNK=16 是时间轴上每组 token 数；D=128 是每个 head 的特征维度。
+    // 不要把时间 chunk 与 GEMM 中沿归约维度切出的 K tile 混为一谈。
     constexpr int kInputStages = 3;
     constexpr int kOutputStages = 2;
     constexpr int CHUNK = 16;
@@ -58,6 +68,11 @@ void launch_fwd(
     Tensor m_out = make_tensor(make_gmem_ptr(out_ptr), gmem_layout);
     Tensor m_beta = make_tensor(make_gmem_ptr<BF16>(beta_ptr), beta_gmem_layout);
 
+    // workspace 在 global memory 中，是两次 kernel 之间的交接区，不是 shared memory。
+    // 每个 (head, chunk) 保存 KD/QD/KR 三个 16x128 矩阵、GT 一个 128 维向量、
+    // INV/Mqk 两个 16x16 矩阵；它们均不依赖进入 chunk 时的历史状态。
+    // ws_inv 是 (I+L) 的逆，ws_mqk 是保留下三角的块内 query-key 权重。
+    // ws_gt 存的已经是整块衰减因子 2^G_last，不能再次对它求指数。
     // --- Workspace gmem layouts (separated arrays)
     int64_t n_ht = int64_t(H) * total_tiles;
     char* ws = reinterpret_cast<char*>(workspace_ptr);
@@ -83,6 +98,8 @@ void launch_fwd(
     Tensor m_ws_inv = make_tensor(make_gmem_ptr(ws_inv), ws_lm_gmem_layout);
     Tensor m_ws_mqk = make_tensor(make_gmem_ptr(ws_mqk), ws_lm_gmem_layout);
 
+    // 对应 assignment02 4.2：host 先描述数据的形状/步长和 smem 布局，
+    // device 再依据描述符发起异步搬运。make_tensor 创建的是视图，不会复制数据。
     // --- TMA descriptors for Kernel 1 (loads: q,k,beta; stores: workspace)
     auto tma_load_q    = make_tma_copy(SM90_TMA_LOAD{}, m_q, TMAQKLayout{});
     auto tma_load_k    = make_tma_copy(SM90_TMA_LOAD{}, m_k, TMAQKLayout{});
@@ -166,6 +183,8 @@ void launch_fwd(
                 cu_seqlens_ptr, N, CHUNK, ws_tile_prefix);
         }
 
+        // K1：一个 CTA（即 block）负责一个 head 的一个时间 chunk，256 线程。
+        // 不同 chunk 不需要彼此的状态，所以 grid.x 可以覆盖全部序列的 chunk。
         dim3 grid_k1(total_tiles, H);
         dim3 block_k1(kK1Threads);
 
@@ -180,6 +199,8 @@ void launch_fwd(
     }
 #endif
 
+    // 两次 launch 使用同一个 stream：正常启用两个 kernel 时，K2 在 K1 完成后执行，
+    // 因而能读到完整 workspace；host 不必在两次 launch 之间 cudaDeviceSynchronize。
     // ===== Launch Kernel 2 (recurrence) =====
 #if BLOCK_LEVEL_K2 >= 0
     {
@@ -200,6 +221,9 @@ void launch_fwd(
 
         cudaFuncSetAttribute(kernel2, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size_k2);
 
+        // K2：一个 CTA 负责一整条序列的一个 head，192 线程 = 6 个 warp。
+        // CTA 内按 t=0,1,... 遍历 chunk，状态从上一块传给下一块。
+        // 因此这里 grid.x 是序列数 N；并行 CTA 数为 N*H，不再乘 chunk 数。
         dim3 grid_k2(N, H);
         dim3 block_k2(kK2Threads);
 

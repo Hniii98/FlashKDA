@@ -1,7 +1,18 @@
+// K1 中文导读：输入 q/k/g/beta，输出与历史状态无关的六组系数。
+// 一个 block = 一个 (head, chunk)，当前 CHUNK=16、D=128。
+// 下文公式忽略浮点舍入；q/k 指归一化后的向量，b_i=sigmoid(beta_i)。
+// G_i 是本 chunk 从第 0 行到第 i 行的逐通道 gate 累加（以 2 为底）。
+// KD_i=k_i*2^G_i；QD_i=scale*q_i*2^G_i；KI_i=k_i*2^(-G_i)。
+// KR_i=KI_i*2^G_last；GT=2^G_last。星号表示对应元素相乘。
+// L_ij=b_i*(KD_i dot KI_j)，仅保留 i>j；INV=(I+L)^(-1)。
+// Mqk_ij=QD_i dot KI_j，仅保留 i>=j。K2 用这些系数处理状态依赖。
 #pragma once
 
 #include "utils.cuh"
 
+// 对应 assignment02 的 layout/fragment：逻辑矩阵形状和物理 smem 地址是两回事。
+// QKLayout 用于预处理；MMALayout/LMLayout 用于 Tensor Core 供数。
+// 类型名字中出现 GMMA 只说明使用了相关布局类型，不代表发射了 WGMMA。
 template <int D, int CHUNK = 16>
 struct K1Layouts {
     using QKLayout = decltype(make_layout(make_shape(Int<CHUNK>{}, Int<D>{}), LayoutRight{}));
@@ -53,6 +64,8 @@ struct SharedStorageK1 {
     // Phase A: q, k, g alive
     // Phase B: k_decayed, q_decayed, k_inv, L, INV, Mqk alive
     // These don't overlap → union saves ~14KB shared memory
+    // 对应 assignment01 的 shared memory：同一 CTA 的线程共用这些数组。
+    // union 让生命周期不重叠的数组占同一段地址；必须先读完旧数据才能写新数据。
     union {
         struct {
             alignas(128) cute::ArrayEngine<BF16, cute::cosize_v<QKLayout>> q;
@@ -164,6 +177,8 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     using SharedStorageT = SharedStorageK1<Layouts>;
     SharedStorageT& shared_storage = *reinterpret_cast<SharedStorageT*>(shared_mem);
 
+    // blockIdx.x 是全局 chunk 编号。变长输入用前缀和定位它属于哪条序列，
+    // bos/eos 为该序列在拼接 token 数组中的起止位置；local_t 是序列内 chunk 编号。
     // --- per-CTA tile info
     int global_tile_idx = blockIdx.x;
     int head_idx = blockIdx.y;
@@ -196,6 +211,8 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     t_tiles_this_seq = (seq_len + CHUNK - 1) / CHUNK;
     // Early exit for excess CTAs (total_tiles is an upper bound)
     if (local_t >= t_tiles_this_seq) return;
+    // 对应 assignment02 4.2 的单缓冲 TMA：只搬当前 chunk，K1 无跨 chunk 流水。
+    // expect_tx 记录预期完成的字节数；__syncthreads 本身不能代替 TMA 完成等待。
     // --- TMA load inputs (single-shot, no pipeline)
     // Only thread 0 issues TMA loads (not elect_one_sync which is per-warp)
     if (threadIdx.x == 0) {
@@ -261,6 +278,9 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     cutlass::arch::fence_view_async_shared();
     __syncthreads();
 
+    // 每行 128 个数由 16 线程合作，每线程 8 个元素：平方求和 -> rsqrt -> 缩放。
+    // shuffle 的 xor 距离为 8/4/2/1，不跨越半个 warp；一个 warp 独立处理两行。
+    // 这对应 assignment01 的 SIMT/归约，以及 assignment02 M1 的线程到数据映射。
     // --- QK L2 Normalization ---
     int compute_tid = threadIdx.x;
     {
@@ -302,6 +322,10 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     }
     __syncthreads();
 
+    // 每个通道交给一个线程，该线程串行扫描 16 个 token，产生 G_i。
+    // gate_scale 在 host 已乘 log2(e)，因此后续 ex2(G) 等价于自然指数门控。
+    // 尾块无效行 gate 设 0（不再衰减）、k 设 0（不再向状态写入）。
+    // 变长序列的逻辑边界可能位于同一大张量内部，不能只依赖 TMA 的张量越界处理。
     // --- Fused gate activation + cumsum + k tail zero-fill ---
     // Threads 0-127: gate(g_bf16 + dt_bias) → cumulative sum, eliminates raw-g smem round-trip
     // Threads 128-255: zero k for tail rows
@@ -337,6 +361,8 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     }
     __syncthreads();
 
+    // gate：旧记忆保留多少
+    // beta：当前修正写入多少
     Tensor q_tile = make_tensor(make_smem_ptr(shared_storage.q.begin()), QKLayout{});
     Tensor k_tile = make_tensor(make_smem_ptr(shared_storage.k.begin()), QKLayout{});
     Tensor g_tile = make_tensor(make_smem_ptr(shared_storage.g.begin()), GLayout{});
@@ -356,6 +382,9 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     }
     __syncthreads();
 
+// 从旧 smem 把 q/k/G 读入寄存器，再统一同步，最后写入复用地址上的 KD/QD/KI。
+// 这是 union 安全复用的关键：否则快线程会覆盖慢线程尚未读取的输入。
+// local_tile 选逻辑子块；cute::copy 在此把子块按线程分工搬到寄存器或 smem。
 // decay_apply
     if (compute_tid < 256) {
         static_assert(D % 64 == 0);
@@ -375,6 +404,7 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
         constexpr int N_N = D / 64;
         constexpr int N_TILES = N_M * N_N;
 
+        // 8*64的TILE大小每个线程需要负责两个元素
         float reg_g[N_TILES][2];
         BF16  reg_q[N_TILES][2];
         BF16  reg_k[N_TILES][2];
@@ -478,6 +508,8 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     Tensor Mqk = make_tensor(make_smem_ptr(shared_storage.Mqk.begin()), LMLayout{});
     Tensor L_fp16 = make_tensor(make_smem_ptr(reinterpret_cast<FP16*>(shared_storage.L.begin())), LMLayout{});
 
+// 两个 warp 分别做 KD@KI^T 和 QD@KI^T，输出都只有 16x16。
+// 对应 assignment02 M1：每个 warp 合作做矩阵乘，不是每线程独立算一个完整矩阵。
 // L_Mqk
     if (compute_tid < 32) {
         mma_m16n16_bf16bf16fp16_1warp(k_decayed, k_inv, L_fp16, compute_tid);
@@ -489,6 +521,9 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     Tensor INV = make_tensor(make_smem_ptr(shared_storage.INV.begin()), LMLayout{});
     Tensor INV_fp16 = make_tensor(make_smem_ptr(reinterpret_cast<FP16*>(shared_storage.INV.begin())), LMLayout{});
 
+// 因果性：第 i 个 token 只能依赖 j<=i。Mqk 保留对角线，包含当前 token 的写入；
+// L 只保留严格下三角，因为它描述当前修正量对“更早修正量”的依赖。
+// 此处 INV=I-L 只是求逆的初始值，尚不是最终结果。
 // tril_IL + INV = I - L (merged, same thread same element)
     if (compute_tid < 256) {
         const int col_block_size = 8;
@@ -509,12 +544,18 @@ __global__ void __launch_bounds__(NumThreads, 8) _flash_kda_fwd_prepare(
     }
     __syncthreads();
 
+// 新数学：16x16 严格下三角矩阵满足 L^16=0，因此在精确算术下
+// (I+L)^(-1)=I-L+L^2-...-L^15，不要求额外的收敛条件。
+// helper 从 I-L 出发，依次右乘 (I+L^2)、(I+L^4)、(I+L^8)。
+// 实际用 FP16 计算并舍入，最终转 BF16 给 K2；实现见 utils.cuh。
 // inv (Neumann series, fused in registers)
     neumann_inv_fused_1warp(L_fp16, INV_fp16, INV, compute_tid);
     // Fence + sync combined: completion + TMA visibility
     cutlass::arch::fence_view_async_shared();
     __syncthreads();
     if (threadIdx.x == 0) {
+        // 一次写出六组系数。fence 处理普通 smem 写与 TMA 访问的可见性，
+        // tma_store_wait 等待异步 store；它们与 CTA 线程会合各有不同职责。
         int ws_idx = head_idx * total_tiles + global_tile_idx;
         // Store k_decayed [CHUNK, D] bf16
         {

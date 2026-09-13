@@ -30,7 +30,7 @@ def bench_fn(fn, warmup, iters, repeats):
     return mean, mn, mx
 
 
-def run_case(seq_lens, H, D, warmup, iters, repeats):
+def run_case(seq_lens, H, D, warmup, iters, repeats, include_fused=False):
     device = torch.device("cuda")
     LOWER_BOUND = -5.0
     scale_float = 1.0 / math.sqrt(D)
@@ -92,6 +92,24 @@ def run_case(seq_lens, H, D, warmup, iters, repeats):
     mean, mn, mx = bench_fn(run_flash_kda_fp32, warmup, iters, repeats)
     print(f"  flash_kda (fp32 state) : mean={mean:.4f} ms, min={mn:.4f} ms, max={mx:.4f} ms")
 
+    # Measure the fused implementation with the same inputs and state contract.
+    if include_fused:
+        for state_label, state_in, state_out in (
+            ("bf16 state", initial_state, final_state),
+            ("no state", None, None),
+            ("fp32 state", initial_state_fp32, final_state_fp32),
+        ):
+            def run_flash_kda_fused():
+                flash_kda.fwd(
+                    q, k, v, g, beta, scale, out,
+                    A_log=A_log, dt_bias=dt_bias, lower_bound=LOWER_BOUND,
+                    initial_state=state_in, final_state=state_out,
+                    use_fused=True, **extra,
+                )
+
+            mean, mn, mx = bench_fn(run_flash_kda_fused, warmup, iters, repeats)
+            print(f"  flash_kda_fused ({state_label}) : mean={mean:.4f} ms, min={mn:.4f} ms, max={mx:.4f} ms")
+
     # --- chunk_kda ---
     h0_ck = initial_state.float()
 
@@ -151,6 +169,8 @@ def main():
     p.add_argument("--mode", choices=["fixed", "varlen", "all"], default="all")
     p.add_argument("--H", type=int, default=96)
     p.add_argument("--D", type=int, default=128)
+    p.add_argument("--include-fused", action="store_true",
+                   help="Also time native fused forward with identical inputs")
     args = p.parse_args()
 
     cases = []
@@ -160,7 +180,7 @@ def main():
         cases.extend(VARLEN_CASES)
 
     for seq_lens in cases:
-        run_case(seq_lens, args.H, args.D, args.warmup, args.iters, args.repeats)
+        run_case(seq_lens, args.H, args.D, args.warmup, args.iters, args.repeats, args.include_fused)
 
 
 if __name__ == "__main__":

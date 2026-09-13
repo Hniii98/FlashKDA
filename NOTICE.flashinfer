@@ -1,0 +1,17 @@
+FlashInfer KDA prefill kernels and scheduling policy
+Copyright (c) 2026 NVIDIA CORPORATION. All rights reserved.
+Licensed under the Apache License, Version 2.0 (LICENSE.flashinfer).
+
+Source: https://github.com/flashinfer-ai/flashinfer
+Commit: c9f0f0d90a22b1734733297ec09f0f44d21927cf
+
+The local device implementation in csrc/smxx/fwd_kernel_fused.cuh is adapted
+from the prefill exports recorded in flash_kda/fused_registry.json.
+Local modifications: renamed operands/layouts, consolidated PTX helpers,
+parameterized state/head variants, passed TMA descriptors as grid-constant
+parameters, and removed disabled serving/checkpoint/tape paths.
+The device arithmetic and schedule ordering follow the recorded source family.
+Only the H64/H96 benchmark schedule portfolio is retained; generic Direct
+N16/N32 cover additional correctness and state contracts.
+The scheduling functions in flash_kda/_fused_policy.py were extracted from
+flashinfer/kda_prefill.py at the same commit.

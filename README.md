@@ -82,7 +82,7 @@ bash tests/test.sh
 
 ```python
 flash_kda.fwd(q, k, v, g, beta, scale, out, A_log, dt_bias, lower_bound,
-              initial_state=None, final_state=None, cu_seqlens=None)
+              initial_state=None, final_state=None, cu_seqlens=None, use_fused=False)
 ```
 
 **Parameters:**
@@ -107,6 +107,30 @@ flash_kda.fwd(q, k, v, g, beta, scale, out, A_log, dt_bias, lower_bound,
 - `initial_state` / `final_state` accept `None` (stateless), bf16, or fp32 tensors. When both are provided, their dtypes must match.
 - When `cu_seqlens` is provided, `B` must be 1, `T` is the total length across all sequences, and `initial_state` / `final_state` have shape `[N, H, V, K]`.
 - When `cu_seqlens` is `None`, each batch element is treated as an independent sequence, and the state shape is `[B, H, V, K]`.
+- Set `use_fused=True` on SM100/SM103 (B200/B300) to use the native fused
+  implementation in `csrc/smxx/fwd_kernel_fused.cuh`, adapted from FlashInfer
+  commit `c9f0f0d90a22b1734733297ec09f0f44d21927cf`.
+- The H64/H96 benchmark uses M64, V-tile direct/persistent and scalar LPT
+  schedules. Other state/parameter contracts use generic Direct N16/N32.
+  Each benchmark forward launches one fused computation kernel; TMA descriptors
+  are grid-constant parameters. BT16 prepare/chain is outside this implementation.
+- K1/K2 remain the default and retain exact agreement with `tests/torch_ref.py`.
+  Fused tests use the upstream `atol=rtol=1e-2` against torch and FLA for both
+  output and final state. FP32 fused states retain upstream FP32 recurrence.
+- Warm the same fused configuration before CUDA graph capture. Sequence lengths
+  are cached; inference-mode `cu_seqlens` must remain immutable. Captured sequence
+  metadata is retained for the process lifetime so replay cannot use freed buffers.
+- Run `python -m pytest tests/test_fwd_fused.py -x -v` for fused correctness,
+  state/varlen/graph coverage and comparisons with FLA.
+- Run `compute-sanitizer --tool memcheck --error-exitcode 1 python tools/check_fused_memory.py`
+  for native launch and CUDA graph memory checks.
+- Run `python benchmarks/generate_benchmark_md.py -o BENCHMARK_B300.md --device-label 'Blackwell / B300' --include-fused`
+  for the benchmark comparison table.
+- The adapted FlashInfer code is covered by [Apache-2.0](LICENSE.flashinfer);
+  see [NOTICE.flashinfer](NOTICE.flashinfer) for provenance and local modifications.
+  `flash_kda/fused_registry.json` records the upstream source paths and hashes.
+  `python tools/check_fused_sources.py` verifies these reference files; they are
+  not compiled or required for building this project.
 
 ## Development
 

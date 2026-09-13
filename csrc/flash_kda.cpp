@@ -1,6 +1,7 @@
 #include <torch/extension.h>
 #include <c10/cuda/CUDAStream.h>
 #include "fwd.h"
+#include "flash_kda_fused.h"
 
 int64_t get_workspace_size(
     int64_t T_total,
@@ -217,6 +218,7 @@ void fwd(
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+    m.def("_fwd_fused", &fwd_fused, "Frozen FlashInfer prefill launcher");
     m.def("fwd", &fwd, "FlashKDA Forward (CUDA)",
         py::arg("q"), py::arg("k"), py::arg("v"), py::arg("g"), py::arg("beta"),
         py::arg("scale"), py::arg("out"),

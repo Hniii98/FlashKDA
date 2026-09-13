@@ -1,0 +1,2561 @@
+{
+  "commit": "c9f0f0d90a22b1734733297ec09f0f44d21927cf",
+  "variants": [
+    {
+      "id": 7,
+      "name": "flashkda_bf16_fused_m128_41afad3d90",
+      "arch": "sm_103a",
+      "family": "direct_m128",
+      "sha256": "96bded9928450ceeaf574df4c48e10363f0e78b7a8063010a9251a808cb0022a",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_41afad3d90.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "sequence_head",
+        "grid_policy_evidence": "observed_head_factorization",
+        "observed_route_roles": [
+          "direct_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "direct_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 3
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "affine_main_indexed_initial": false,
+            "affine_main_indexed_initial_bf16": false,
+            "checkpoint_tma": false,
+            "chunk": 32,
+            "early_n32_state_pack": false,
+            "gate_kind": "lower_bound",
+            "generic_register_inverse": true,
+            "n32_ft_slab": false,
+            "n32_prediction_first": true,
+            "pair_packed_beta": false,
+            "pdl_publish_final_state": false,
+            "pdl_wait_initial_state_f32": false,
+            "scalar_beta": false,
+            "serving_native_abi": false,
+            "state_dtype_is_fp32": false,
+            "tensor_state_decay": false
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "direct_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "chunk",
+                32
+              ],
+              [
+                "serving_native_abi",
+                false
+              ],
+              [
+                "gate_kind",
+                "lower_bound"
+              ],
+              [
+                "checkpoint_tma",
+                false
+              ],
+              [
+                "pair_packed_beta",
+                false
+              ],
+              [
+                "scalar_beta",
+                false
+              ],
+              [
+                "early_n32_state_pack",
+                false
+              ],
+              [
+                "generic_register_inverse",
+                true
+              ],
+              [
+                "n32_prediction_first",
+                true
+              ],
+              [
+                "tensor_state_decay",
+                false
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ],
+              [
+                "n32_ft_slab",
+                false
+              ],
+              [
+                "pdl_wait_initial_state_f32",
+                false
+              ],
+              [
+                "pdl_publish_final_state",
+                false
+              ],
+              [
+                "affine_main_indexed_initial",
+                false
+              ],
+              [
+                "affine_main_indexed_initial_bf16",
+                false
+              ]
+            ],
+            "route": "direct_m128",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "ed4253ae6ad361cbdec880e714fc844b3edbd83a873b7dcc6884ed0e119ce349"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_direct_n32",
+      "template_args": [
+        false
+      ]
+    },
+    {
+      "id": 6,
+      "name": "flashkda_bf16_fused_m128_388c6ad8eb",
+      "arch": "sm_103a",
+      "family": "direct_m128",
+      "sha256": "460fe29ee94ed55ce961f6a9f8ad30f98e8043c74238a11ad191e83675fd1710",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_388c6ad8eb.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "sequence_head",
+        "grid_policy_evidence": "observed_head_factorization",
+        "observed_route_roles": [
+          "direct_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "direct_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 3
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "affine_main_indexed_initial": false,
+            "affine_main_indexed_initial_bf16": false,
+            "checkpoint_tma": false,
+            "chunk": 32,
+            "early_n32_state_pack": false,
+            "gate_kind": "lower_bound",
+            "generic_register_inverse": true,
+            "n32_ft_slab": false,
+            "n32_prediction_first": true,
+            "pair_packed_beta": false,
+            "pdl_publish_final_state": false,
+            "pdl_wait_initial_state_f32": false,
+            "scalar_beta": false,
+            "serving_native_abi": true,
+            "state_dtype_is_fp32": true,
+            "tensor_state_decay": false
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "direct_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "chunk",
+                32
+              ],
+              [
+                "serving_native_abi",
+                true
+              ],
+              [
+                "gate_kind",
+                "lower_bound"
+              ],
+              [
+                "checkpoint_tma",
+                false
+              ],
+              [
+                "pair_packed_beta",
+                false
+              ],
+              [
+                "scalar_beta",
+                false
+              ],
+              [
+                "early_n32_state_pack",
+                false
+              ],
+              [
+                "generic_register_inverse",
+                true
+              ],
+              [
+                "n32_prediction_first",
+                true
+              ],
+              [
+                "tensor_state_decay",
+                false
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ],
+              [
+                "n32_ft_slab",
+                false
+              ],
+              [
+                "pdl_wait_initial_state_f32",
+                false
+              ],
+              [
+                "pdl_publish_final_state",
+                false
+              ],
+              [
+                "affine_main_indexed_initial",
+                false
+              ],
+              [
+                "affine_main_indexed_initial_bf16",
+                false
+              ]
+            ],
+            "route": "direct_m128",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "42fe4532804f5eac07139faa112461fde2cac10c2dd74ca4a1c9e9544b33ecaf"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_direct_n32",
+      "template_args": [
+        true
+      ]
+    },
+    {
+      "id": 14,
+      "name": "flashkda_bf16_fused_m128_a1dc60f331",
+      "arch": "sm_100a",
+      "family": "direct_m128",
+      "sha256": "aff073d62875ee6bdce67fa84d097bcd97ad041962c5a52eed106d79fa309d7b",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_a1dc60f331.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 16,
+        "grid_policy": "sequence_head",
+        "grid_policy_evidence": "observed_head_factorization",
+        "observed_route_roles": [
+          "direct_m128_n16:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "direct_m128_n16:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n16",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "affine_main_indexed_initial": false,
+            "affine_main_indexed_initial_bf16": false,
+            "checkpoint_tma": false,
+            "chunk": 16,
+            "early_n32_state_pack": false,
+            "gate_kind": "lower_bound",
+            "generic_register_inverse": false,
+            "n32_ft_slab": false,
+            "n32_prediction_first": false,
+            "pair_packed_beta": false,
+            "pdl_publish_final_state": false,
+            "pdl_wait_initial_state_f32": false,
+            "scalar_beta": false,
+            "serving_native_abi": false,
+            "state_dtype_is_fp32": false,
+            "tensor_state_decay": false
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "direct_m128",
+            "arch": "sm_100a",
+            "family_specialization_vector": [
+              [
+                "chunk",
+                16
+              ],
+              [
+                "serving_native_abi",
+                false
+              ],
+              [
+                "gate_kind",
+                "lower_bound"
+              ],
+              [
+                "checkpoint_tma",
+                false
+              ],
+              [
+                "pair_packed_beta",
+                false
+              ],
+              [
+                "scalar_beta",
+                false
+              ],
+              [
+                "early_n32_state_pack",
+                false
+              ],
+              [
+                "generic_register_inverse",
+                false
+              ],
+              [
+                "n32_prediction_first",
+                false
+              ],
+              [
+                "tensor_state_decay",
+                false
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ],
+              [
+                "n32_ft_slab",
+                false
+              ],
+              [
+                "pdl_wait_initial_state_f32",
+                false
+              ],
+              [
+                "pdl_publish_final_state",
+                false
+              ],
+              [
+                "affine_main_indexed_initial",
+                false
+              ],
+              [
+                "affine_main_indexed_initial_bf16",
+                false
+              ]
+            ],
+            "route": "direct_m128_n16",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "a96b65ad4b313b17bbd139dad9bd8e06cf412499674a18fce982fc97bab039f7"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_direct_n16",
+      "template_args": [
+        false
+      ]
+    },
+    {
+      "id": 14,
+      "name": "flashkda_bf16_fused_m128_a1dc60f331",
+      "arch": "sm_103a",
+      "family": "direct_m128",
+      "sha256": "aff073d62875ee6bdce67fa84d097bcd97ad041962c5a52eed106d79fa309d7b",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_a1dc60f331.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 16,
+        "grid_policy": "sequence_head",
+        "grid_policy_evidence": "observed_head_factorization",
+        "observed_route_roles": [
+          "direct_m128_n16:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "direct_m128_n16:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n16",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "affine_main_indexed_initial": false,
+            "affine_main_indexed_initial_bf16": false,
+            "checkpoint_tma": false,
+            "chunk": 16,
+            "early_n32_state_pack": false,
+            "gate_kind": "lower_bound",
+            "generic_register_inverse": false,
+            "n32_ft_slab": false,
+            "n32_prediction_first": false,
+            "pair_packed_beta": false,
+            "pdl_publish_final_state": false,
+            "pdl_wait_initial_state_f32": false,
+            "scalar_beta": false,
+            "serving_native_abi": false,
+            "state_dtype_is_fp32": false,
+            "tensor_state_decay": false
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "direct_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "chunk",
+                16
+              ],
+              [
+                "serving_native_abi",
+                false
+              ],
+              [
+                "gate_kind",
+                "lower_bound"
+              ],
+              [
+                "checkpoint_tma",
+                false
+              ],
+              [
+                "pair_packed_beta",
+                false
+              ],
+              [
+                "scalar_beta",
+                false
+              ],
+              [
+                "early_n32_state_pack",
+                false
+              ],
+              [
+                "generic_register_inverse",
+                false
+              ],
+              [
+                "n32_prediction_first",
+                false
+              ],
+              [
+                "tensor_state_decay",
+                false
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ],
+              [
+                "n32_ft_slab",
+                false
+              ],
+              [
+                "pdl_wait_initial_state_f32",
+                false
+              ],
+              [
+                "pdl_publish_final_state",
+                false
+              ],
+              [
+                "affine_main_indexed_initial",
+                false
+              ],
+              [
+                "affine_main_indexed_initial_bf16",
+                false
+              ]
+            ],
+            "route": "direct_m128_n16",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "ff47f4e9ce08ba4f4a5cd748859d9f8abcdcef94d8f1f85c97746afb006a7501"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_direct_n16",
+      "template_args": [
+        false
+      ]
+    },
+    {
+      "id": 18,
+      "name": "flashkda_bf16_fused_m128_d1c0d1fe67",
+      "arch": "sm_100a",
+      "family": "direct_m128",
+      "sha256": "631fb3cfbee3c4081a5421ef90fe77d849e0d8c1513d97e7cf1affa55284e950",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_d1c0d1fe67.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 16,
+        "grid_policy": "sequence_head",
+        "grid_policy_evidence": "observed_head_factorization",
+        "observed_route_roles": [
+          "direct_m128_n16:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "direct_m128_n16:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n16",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "affine_main_indexed_initial": false,
+            "affine_main_indexed_initial_bf16": false,
+            "checkpoint_tma": false,
+            "chunk": 16,
+            "early_n32_state_pack": false,
+            "gate_kind": "lower_bound",
+            "generic_register_inverse": false,
+            "n32_ft_slab": false,
+            "n32_prediction_first": false,
+            "pair_packed_beta": false,
+            "pdl_publish_final_state": false,
+            "pdl_wait_initial_state_f32": false,
+            "scalar_beta": false,
+            "serving_native_abi": true,
+            "state_dtype_is_fp32": true,
+            "tensor_state_decay": false
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "direct_m128",
+            "arch": "sm_100a",
+            "family_specialization_vector": [
+              [
+                "chunk",
+                16
+              ],
+              [
+                "serving_native_abi",
+                true
+              ],
+              [
+                "gate_kind",
+                "lower_bound"
+              ],
+              [
+                "checkpoint_tma",
+                false
+              ],
+              [
+                "pair_packed_beta",
+                false
+              ],
+              [
+                "scalar_beta",
+                false
+              ],
+              [
+                "early_n32_state_pack",
+                false
+              ],
+              [
+                "generic_register_inverse",
+                false
+              ],
+              [
+                "n32_prediction_first",
+                false
+              ],
+              [
+                "tensor_state_decay",
+                false
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ],
+              [
+                "n32_ft_slab",
+                false
+              ],
+              [
+                "pdl_wait_initial_state_f32",
+                false
+              ],
+              [
+                "pdl_publish_final_state",
+                false
+              ],
+              [
+                "affine_main_indexed_initial",
+                false
+              ],
+              [
+                "affine_main_indexed_initial_bf16",
+                false
+              ]
+            ],
+            "route": "direct_m128_n16",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "e88634c37e62c3f44413f4dfe0eb6cae1758443bc60a9097f02c9622f75696c4"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_direct_n16",
+      "template_args": [
+        true
+      ]
+    },
+    {
+      "id": 18,
+      "name": "flashkda_bf16_fused_m128_d1c0d1fe67",
+      "arch": "sm_103a",
+      "family": "direct_m128",
+      "sha256": "631fb3cfbee3c4081a5421ef90fe77d849e0d8c1513d97e7cf1affa55284e950",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_d1c0d1fe67.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 16,
+        "grid_policy": "sequence_head",
+        "grid_policy_evidence": "observed_head_factorization",
+        "observed_route_roles": [
+          "direct_m128_n16:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "direct_m128_n16:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n16",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "affine_main_indexed_initial": false,
+            "affine_main_indexed_initial_bf16": false,
+            "checkpoint_tma": false,
+            "chunk": 16,
+            "early_n32_state_pack": false,
+            "gate_kind": "lower_bound",
+            "generic_register_inverse": false,
+            "n32_ft_slab": false,
+            "n32_prediction_first": false,
+            "pair_packed_beta": false,
+            "pdl_publish_final_state": false,
+            "pdl_wait_initial_state_f32": false,
+            "scalar_beta": false,
+            "serving_native_abi": true,
+            "state_dtype_is_fp32": true,
+            "tensor_state_decay": false
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "direct_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "chunk",
+                16
+              ],
+              [
+                "serving_native_abi",
+                true
+              ],
+              [
+                "gate_kind",
+                "lower_bound"
+              ],
+              [
+                "checkpoint_tma",
+                false
+              ],
+              [
+                "pair_packed_beta",
+                false
+              ],
+              [
+                "scalar_beta",
+                false
+              ],
+              [
+                "early_n32_state_pack",
+                false
+              ],
+              [
+                "generic_register_inverse",
+                false
+              ],
+              [
+                "n32_prediction_first",
+                false
+              ],
+              [
+                "tensor_state_decay",
+                false
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ],
+              [
+                "n32_ft_slab",
+                false
+              ],
+              [
+                "pdl_wait_initial_state_f32",
+                false
+              ],
+              [
+                "pdl_publish_final_state",
+                false
+              ],
+              [
+                "affine_main_indexed_initial",
+                false
+              ],
+              [
+                "affine_main_indexed_initial_bf16",
+                false
+              ]
+            ],
+            "route": "direct_m128_n16",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "829cd3a5212826f112a90bab2ede5d2b6370e609bc9eb45b64a54983e256f647"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_direct_n16",
+      "template_args": [
+        true
+      ]
+    },
+    {
+      "id": 30,
+      "name": "flashkda_bf16_fused_m64_2eb7864cd4",
+      "arch": "sm_100a",
+      "family": "m64",
+      "sha256": "cc1abae1202a1e6ce409e90eb830a91e3036d8f3f2380b82df29f2d1044cb1e1",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m64_2eb7864cd4.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "two_value_splits_sequence_head",
+        "grid_policy_evidence": "observed_two_split_head_factorization",
+        "observed_route_roles": [
+          "independent_dvsplit_m64:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "independent_dvsplit_m64:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 64,
+        "value_tma_rank": 3
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "full_n32_chunks": true,
+            "lower_bound": -5.0,
+            "num_heads": 64,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": false,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "m64",
+            "arch": "sm_100a",
+            "family_specialization_vector": [
+              [
+                "full_n32_chunks",
+                true
+              ],
+              [
+                "num_heads",
+                64
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ]
+            ],
+            "route": "independent_dvsplit_m64",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "8e436bbe68decce69ac7d299291efe37a008ae5cbfd16b22d0618760254b5e69"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_m64",
+      "template_args": [
+        false
+      ]
+    },
+    {
+      "id": 30,
+      "name": "flashkda_bf16_fused_m64_2eb7864cd4",
+      "arch": "sm_103a",
+      "family": "m64",
+      "sha256": "cc1abae1202a1e6ce409e90eb830a91e3036d8f3f2380b82df29f2d1044cb1e1",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m64_2eb7864cd4.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "two_value_splits_sequence_head",
+        "grid_policy_evidence": "observed_two_split_head_factorization",
+        "observed_route_roles": [
+          "independent_dvsplit_m64:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "independent_dvsplit_m64:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 64,
+        "value_tma_rank": 3
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "full_n32_chunks": true,
+            "lower_bound": -5.0,
+            "num_heads": 64,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": false,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "m64",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "full_n32_chunks",
+                true
+              ],
+              [
+                "num_heads",
+                64
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ]
+            ],
+            "route": "independent_dvsplit_m64",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "56c2f3ad01b1bbdb39f9bfebd9e9672e8fb860255e8d3392d66797348183a8fa"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_m64",
+      "template_args": [
+        false
+      ]
+    },
+    {
+      "id": 32,
+      "name": "flashkda_bf16_fused_m64_9f7512076a",
+      "arch": "sm_100a",
+      "family": "m64",
+      "sha256": "cd8b441cacde8adf74f9f2e1a9a14e7e2394e26d6d4e928871d990bac2b8d131",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m64_9f7512076a.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "two_value_splits_sequence_head",
+        "grid_policy_evidence": "observed_two_split_head_factorization",
+        "observed_route_roles": [
+          "independent_dvsplit_m64:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "independent_dvsplit_m64:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 64,
+        "value_tma_rank": 3
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "full_n32_chunks": true,
+            "lower_bound": -5.0,
+            "num_heads": 64,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": true,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "m64",
+            "arch": "sm_100a",
+            "family_specialization_vector": [
+              [
+                "full_n32_chunks",
+                true
+              ],
+              [
+                "num_heads",
+                64
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ]
+            ],
+            "route": "independent_dvsplit_m64",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "71b37744b65a0c6a36b204c4b9efa274058997549badf21321f0a92007032d7d"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_m64",
+      "template_args": [
+        true
+      ]
+    },
+    {
+      "id": 32,
+      "name": "flashkda_bf16_fused_m64_9f7512076a",
+      "arch": "sm_103a",
+      "family": "m64",
+      "sha256": "cd8b441cacde8adf74f9f2e1a9a14e7e2394e26d6d4e928871d990bac2b8d131",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m64_9f7512076a.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "two_value_splits_sequence_head",
+        "grid_policy_evidence": "observed_two_split_head_factorization",
+        "observed_route_roles": [
+          "independent_dvsplit_m64:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "independent_dvsplit_m64:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 64,
+        "value_tma_rank": 3
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "full_n32_chunks": true,
+            "lower_bound": -5.0,
+            "num_heads": 64,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": true,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "m64",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "full_n32_chunks",
+                true
+              ],
+              [
+                "num_heads",
+                64
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ]
+            ],
+            "route": "independent_dvsplit_m64",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "43243146bbe5ae824428b5001b230d3d8f2edc710dc7972db326fe354856b43c"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_m64",
+      "template_args": [
+        true
+      ]
+    },
+    {
+      "id": 10,
+      "name": "flashkda_bf16_fused_m128_79d0e71824",
+      "arch": "sm_100a",
+      "family": "scalar_lpt_m128",
+      "sha256": "4d9a558e736046cc04f58302b83d4eef69de540ade141131da625a31f19c39ac",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_79d0e71824.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "tile_schedule_count",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "scalar_chunk_lpt_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "scalar_chunk_lpt_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "lower_bound": -5.0,
+            "num_heads": 64,
+            "persistent_schedule": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": false,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "scalar_lpt_m128",
+            "arch": "sm_100a",
+            "family_specialization_vector": [
+              [
+                "num_heads",
+                64
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_schedule",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ]
+            ],
+            "route": "scalar_chunk_lpt_m128",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "d34e96c87df6814926f2d408a47f02475b1a53e26aadae1ddf9d28e08c4d6895"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_scalar_lpt",
+      "template_args": [
+        false,
+        64
+      ]
+    },
+    {
+      "id": 10,
+      "name": "flashkda_bf16_fused_m128_79d0e71824",
+      "arch": "sm_103a",
+      "family": "scalar_lpt_m128",
+      "sha256": "4d9a558e736046cc04f58302b83d4eef69de540ade141131da625a31f19c39ac",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_79d0e71824.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "tile_schedule_count",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "scalar_chunk_lpt_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "scalar_chunk_lpt_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "lower_bound": -5.0,
+            "num_heads": 64,
+            "persistent_schedule": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": false,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "scalar_lpt_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "num_heads",
+                64
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_schedule",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ]
+            ],
+            "route": "scalar_chunk_lpt_m128",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "c79fa908d0fa1ca29b325d8c0ce4e0122360a12ee2c01ca74cba32c4323d4606"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_scalar_lpt",
+      "template_args": [
+        false,
+        64
+      ]
+    },
+    {
+      "id": 17,
+      "name": "flashkda_bf16_fused_m128_c8af151b6d",
+      "arch": "sm_100a",
+      "family": "scalar_lpt_m128",
+      "sha256": "1896bf39a0351090df84902e7f64bcc4cd06d8ea8dda9226fa2a3e4385b35f76",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_c8af151b6d.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "tile_schedule_count",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "scalar_chunk_lpt_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "scalar_chunk_lpt_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "lower_bound": -5.0,
+            "num_heads": 64,
+            "persistent_schedule": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": true,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "scalar_lpt_m128",
+            "arch": "sm_100a",
+            "family_specialization_vector": [
+              [
+                "num_heads",
+                64
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_schedule",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ]
+            ],
+            "route": "scalar_chunk_lpt_m128",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "111e4599254925c677095b1d3b0f8e88f7f7156b80b8513b6951b38853b6d0c0"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_scalar_lpt",
+      "template_args": [
+        true,
+        64
+      ]
+    },
+    {
+      "id": 17,
+      "name": "flashkda_bf16_fused_m128_c8af151b6d",
+      "arch": "sm_103a",
+      "family": "scalar_lpt_m128",
+      "sha256": "1896bf39a0351090df84902e7f64bcc4cd06d8ea8dda9226fa2a3e4385b35f76",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_c8af151b6d.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "tile_schedule_count",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "scalar_chunk_lpt_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "scalar_chunk_lpt_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "lower_bound": -5.0,
+            "num_heads": 64,
+            "persistent_schedule": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": true,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "scalar_lpt_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "num_heads",
+                64
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_schedule",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ]
+            ],
+            "route": "scalar_chunk_lpt_m128",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "eb5e7eea9bd3ffa727c5ef9348867464d24c19f9a34e905379a76863cb666b0a"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_scalar_lpt",
+      "template_args": [
+        true,
+        64
+      ]
+    },
+    {
+      "id": 12,
+      "name": "flashkda_bf16_fused_m128_7c0223cea8",
+      "arch": "sm_100a",
+      "family": "scalar_lpt_m128",
+      "sha256": "6bb867f1f46da0315da5f419ae12b55326c2f60e09e5534f82a02d92821ccb34",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_7c0223cea8.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "tile_schedule_count",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "scalar_chunk_lpt_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "scalar_chunk_lpt_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "lower_bound": -5.0,
+            "num_heads": 96,
+            "persistent_schedule": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": false,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "scalar_lpt_m128",
+            "arch": "sm_100a",
+            "family_specialization_vector": [
+              [
+                "num_heads",
+                96
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_schedule",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ]
+            ],
+            "route": "scalar_chunk_lpt_m128",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "f7873dbc14793271bf9c869b979bddd35a7df8ab4690ad803fb2ea303b4a9422"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_scalar_lpt",
+      "template_args": [
+        false,
+        96
+      ]
+    },
+    {
+      "id": 12,
+      "name": "flashkda_bf16_fused_m128_7c0223cea8",
+      "arch": "sm_103a",
+      "family": "scalar_lpt_m128",
+      "sha256": "6bb867f1f46da0315da5f419ae12b55326c2f60e09e5534f82a02d92821ccb34",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_7c0223cea8.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "tile_schedule_count",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "scalar_chunk_lpt_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "scalar_chunk_lpt_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "lower_bound": -5.0,
+            "num_heads": 96,
+            "persistent_schedule": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": false,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "scalar_lpt_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "num_heads",
+                96
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_schedule",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ]
+            ],
+            "route": "scalar_chunk_lpt_m128",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "cb0eeb709e16d08ec2303ecfc45202d7dc094d7ce987005a707a41e3c3ada702"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_scalar_lpt",
+      "template_args": [
+        false,
+        96
+      ]
+    },
+    {
+      "id": 8,
+      "name": "flashkda_bf16_fused_m128_5ae1699f79",
+      "arch": "sm_100a",
+      "family": "scalar_lpt_m128",
+      "sha256": "02d71288ac6e959eb087ae716d59dd59d81f42f6c38405f5d1fbb8ce16b244ae",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_5ae1699f79.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "tile_schedule_count",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "scalar_chunk_lpt_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "scalar_chunk_lpt_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "lower_bound": -5.0,
+            "num_heads": 96,
+            "persistent_schedule": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": true,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "scalar_lpt_m128",
+            "arch": "sm_100a",
+            "family_specialization_vector": [
+              [
+                "num_heads",
+                96
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_schedule",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ]
+            ],
+            "route": "scalar_chunk_lpt_m128",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "7483f2b016834b13f5e68df7468d62514bc95304e9d6e2cfe44d63d6269300fc"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_scalar_lpt",
+      "template_args": [
+        true,
+        96
+      ]
+    },
+    {
+      "id": 8,
+      "name": "flashkda_bf16_fused_m128_5ae1699f79",
+      "arch": "sm_103a",
+      "family": "scalar_lpt_m128",
+      "sha256": "02d71288ac6e959eb087ae716d59dd59d81f42f6c38405f5d1fbb8ce16b244ae",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_5ae1699f79.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "tile_schedule_count",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "scalar_chunk_lpt_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "scalar_chunk_lpt_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "lower_bound": -5.0,
+            "num_heads": 96,
+            "persistent_schedule": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": true,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "scalar_lpt_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "num_heads",
+                96
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_schedule",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ]
+            ],
+            "route": "scalar_chunk_lpt_m128",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "3d0ac0982fe2b9f09e7251f2f191c435eb1da5c4394d83c3a86c54f5527df94f"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_scalar_lpt",
+      "template_args": [
+        true,
+        96
+      ]
+    },
+    {
+      "id": 29,
+      "name": "flashkda_bf16_fused_m128_vtile_d589dad375",
+      "arch": "sm_103a",
+      "family": "vtile_m128",
+      "sha256": "aa6ec727b1daa0e51d8cd43ac5665ec4ea09f062f41521971c191d147fb1237c",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_vtile_d589dad375.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "persistent_vtile_tasks",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "source599_vtile_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "source599_vtile_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "full_n32_chunks": true,
+            "lower_bound": -5.0,
+            "num_heads": 96,
+            "persistent_mode": false,
+            "persistent_six_task_schedule": false,
+            "persistent_stride_head_aligned": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": false,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "vtile_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "full_n32_chunks",
+                true
+              ],
+              [
+                "num_heads",
+                96
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_mode",
+                false
+              ],
+              [
+                "persistent_six_task_schedule",
+                false
+              ],
+              [
+                "persistent_stride_head_aligned",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ]
+            ],
+            "route": "source599_vtile_m128",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "fff77b3fa17aa012e724a3a3b98996f029aaab01efdfc03c504dfc89792c66b2"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_vtile_direct",
+      "template_args": [
+        false
+      ]
+    },
+    {
+      "id": 25,
+      "name": "flashkda_bf16_fused_m128_vtile_4b7d3b6523",
+      "arch": "sm_103a",
+      "family": "vtile_m128",
+      "sha256": "d658c80fe803d70b98986cff63d6c71796e60c3e81d97fcdedd542df2b5b1e70",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_vtile_4b7d3b6523.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "persistent_vtile_tasks",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "source599_vtile_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "source599_vtile_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "full_n32_chunks": true,
+            "lower_bound": -5.0,
+            "num_heads": 96,
+            "persistent_mode": false,
+            "persistent_six_task_schedule": false,
+            "persistent_stride_head_aligned": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": true,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "vtile_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "full_n32_chunks",
+                true
+              ],
+              [
+                "num_heads",
+                96
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_mode",
+                false
+              ],
+              [
+                "persistent_six_task_schedule",
+                false
+              ],
+              [
+                "persistent_stride_head_aligned",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ]
+            ],
+            "route": "source599_vtile_m128",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "73a8c0ec0aa627fdebfdd3af4eb3739104ae46ccde2b806b3c9cf69ab809b94b"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_vtile_direct",
+      "template_args": [
+        true
+      ]
+    },
+    {
+      "id": 26,
+      "name": "flashkda_bf16_fused_m128_vtile_603e2d906d",
+      "arch": "sm_103a",
+      "family": "vtile_m128",
+      "sha256": "5764d78a8852b5937fa1a40937d74e60e05d1d81b34620707377dfb99b07f56c",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_vtile_603e2d906d.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "persistent_vtile_tasks",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "source599_vtile_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "source599_vtile_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "full_n32_chunks": true,
+            "lower_bound": -5.0,
+            "num_heads": 64,
+            "persistent_mode": true,
+            "persistent_six_task_schedule": false,
+            "persistent_stride_head_aligned": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": false,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "vtile_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "full_n32_chunks",
+                true
+              ],
+              [
+                "num_heads",
+                64
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_mode",
+                true
+              ],
+              [
+                "persistent_six_task_schedule",
+                false
+              ],
+              [
+                "persistent_stride_head_aligned",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ]
+            ],
+            "route": "source599_vtile_m128",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "aeb9da4bd86f1877ed56ecb2871a0968a78d03fe86a58a1db0a16dd5cb1ae24b"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_vtile_persistent",
+      "template_args": [
+        false,
+        64
+      ]
+    },
+    {
+      "id": 27,
+      "name": "flashkda_bf16_fused_m128_vtile_a8f9b5a463",
+      "arch": "sm_103a",
+      "family": "vtile_m128",
+      "sha256": "49dc86e1b37348f16ee545a9db9e699089b6aec1e454701ffdc8d5ec32a52601",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_vtile_a8f9b5a463.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "persistent_vtile_tasks",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "source599_vtile_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "source599_vtile_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "full_n32_chunks": true,
+            "lower_bound": -5.0,
+            "num_heads": 64,
+            "persistent_mode": true,
+            "persistent_six_task_schedule": false,
+            "persistent_stride_head_aligned": true,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": true,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "vtile_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "full_n32_chunks",
+                true
+              ],
+              [
+                "num_heads",
+                64
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_mode",
+                true
+              ],
+              [
+                "persistent_six_task_schedule",
+                false
+              ],
+              [
+                "persistent_stride_head_aligned",
+                true
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ]
+            ],
+            "route": "source599_vtile_m128",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "ceacc712fe0a77daeae788e1b49da3deca6c5e0aada0b512c0ba4a01d8315884"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_vtile_persistent",
+      "template_args": [
+        true,
+        64
+      ]
+    },
+    {
+      "id": 28,
+      "name": "flashkda_bf16_fused_m128_vtile_b784466ef6",
+      "arch": "sm_103a",
+      "family": "vtile_m128",
+      "sha256": "a08e29c936013620e16fb7d88e55ee7b42a67f0b83c051179db203cd80ab814a",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_vtile_b784466ef6.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "persistent_vtile_tasks",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "source599_vtile_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "source599_vtile_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "full_n32_chunks": true,
+            "lower_bound": -5.0,
+            "num_heads": 96,
+            "persistent_mode": true,
+            "persistent_six_task_schedule": true,
+            "persistent_stride_head_aligned": false,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": false,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "vtile_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "full_n32_chunks",
+                true
+              ],
+              [
+                "num_heads",
+                96
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_mode",
+                true
+              ],
+              [
+                "persistent_six_task_schedule",
+                true
+              ],
+              [
+                "persistent_stride_head_aligned",
+                false
+              ],
+              [
+                "state_dtype_is_fp32",
+                false
+              ]
+            ],
+            "route": "source599_vtile_m128",
+            "route_role": "main",
+            "state_mode": "bf16"
+          },
+          "selector_key_sha256": "71d07c7b5f3ca5206530d84375f4f62b465d9d038b6aa8d99694c892e94c2599"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_vtile_persistent",
+      "template_args": [
+        false,
+        96
+      ]
+    },
+    {
+      "id": 24,
+      "name": "flashkda_bf16_fused_m128_vtile_11bf731116",
+      "arch": "sm_103a",
+      "family": "vtile_m128",
+      "sha256": "5d2e3ce26fab1abcba296d261738e6425ce690751a15c2ad3cab81040be5d335",
+      "source": "csrc/kda/flashkda_generated_bf16_fused_m128_vtile_11bf731116.cu",
+      "launch": {
+        "affine_dependency_contract": "none",
+        "chunk_tokens": 32,
+        "grid_policy": "persistent_vtile_tasks",
+        "grid_policy_evidence": "observed_positive_1d_grid",
+        "observed_route_roles": [
+          "source599_vtile_m128:main"
+        ],
+        "pair_packed_beta": false,
+        "route_role": "source599_vtile_m128:main",
+        "schema_version": 2,
+        "sources": {
+          "affine_dependency_contract": "route_role + compiled state slots + PDL flag",
+          "chunk_tokens": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "grid_policy": "route_role policy table + route inventory grid evidence",
+          "grid_policy_evidence": "every route inventory grid for the physical module role",
+          "observed_route_roles": "runtime physical sequences + exact compile-factory physical roles",
+          "pair_packed_beta": "body define SMEM_SMEM_BETA_RAW_STAGE_BYTES + beta TMA ABI use",
+          "route_role": "module contexts + sealed runtime-to-public role alias",
+          "tma_tile": "body define SMEM_SMEM_QD_STAGE_BYTES / (128 * BF16 bytes)",
+          "value_rows": "body define SMEM_SMEM_V_STAGE_BYTES / (chunk tokens * BF16 bytes)",
+          "value_tma_rank": "sealed body tma_3d/tma_4d_gmem2smem call whose descriptor is v_tma"
+        },
+        "tma_tile": "n32",
+        "value_rows": 128,
+        "value_tma_rank": 4
+      },
+      "selectors": [
+        {
+          "family_specialization": {
+            "full_n32_chunks": true,
+            "lower_bound": -5.0,
+            "num_heads": 96,
+            "persistent_mode": true,
+            "persistent_six_task_schedule": true,
+            "persistent_stride_head_aligned": false,
+            "scale": 0.08838834764831845,
+            "state_dtype_is_fp32": true,
+            "store_final_state": true,
+            "use_initial_state": true
+          },
+          "schema_version": 1,
+          "selector_key": {
+            "abi_family": "vtile_m128",
+            "arch": "sm_103a",
+            "family_specialization_vector": [
+              [
+                "full_n32_chunks",
+                true
+              ],
+              [
+                "num_heads",
+                96
+              ],
+              [
+                "use_initial_state",
+                true
+              ],
+              [
+                "store_final_state",
+                true
+              ],
+              [
+                "scale",
+                0.08838834764831845
+              ],
+              [
+                "lower_bound",
+                -5.0
+              ],
+              [
+                "persistent_mode",
+                true
+              ],
+              [
+                "persistent_six_task_schedule",
+                true
+              ],
+              [
+                "persistent_stride_head_aligned",
+                false
+              ],
+              [
+                "state_dtype_is_fp32",
+                true
+              ]
+            ],
+            "route": "source599_vtile_m128",
+            "route_role": "main",
+            "state_mode": "fp32"
+          },
+          "selector_key_sha256": "cdcae074f4abb999ca0a2c8737365bacb63c60fd4c537180bab1aa0b3cdf148a"
+        }
+      ],
+      "entry": "_flash_kda_fwd_fused_vtile_persistent",
+      "template_args": [
+        true,
+        96
+      ]
+    }
+  ]
+}

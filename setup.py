@@ -58,7 +58,17 @@ ext_modules = [
         sources=[
             'csrc/flash_kda.cpp',
             'csrc/smxx/fwd_launch.cu',
+            'csrc/flash_kda_fused.cpp',
+            'csrc/sm100/fwd_fused.cu',
+            'csrc/sm100/fused_registry.cpp',
+            'csrc/sm100/fwd_fused_direct_n16.cu',
+            'csrc/sm100/fwd_fused_direct_n32.cu',
+            'csrc/sm100/fwd_fused_m64.cu',
+            'csrc/sm100/fwd_fused_scalar_lpt.cu',
+            'csrc/sm100/fwd_fused_vtile_direct.cu',
+            'csrc/sm100/fwd_fused_vtile_persistent.cu',
         ],
+        libraries=['cuda'],
         include_dirs=[
             os.path.join(this_dir, 'cutlass', 'include'),
             os.path.join(this_dir, 'cutlass', 'examples', 'common'),
@@ -100,6 +110,7 @@ setup(
     description='FlashKDA: Flash Kimi Delta Attention',
     ext_modules=ext_modules,
     packages=['flash_kda'],
+    package_data={'flash_kda': ['fused_registry.json']},
     cmdclass=cmdclass,
     zip_safe=False,
 )

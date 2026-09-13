@@ -2,7 +2,7 @@ import torch
 from flash_kda_C import fwd as _fwd_raw, get_workspace_size
 
 
-def fwd(q, k, v, g, beta, scale, out, A_log, dt_bias, lower_bound, initial_state=None, final_state=None, cu_seqlens=None):
+def fwd(q, k, v, g, beta, scale, out, A_log, dt_bias, lower_bound, initial_state=None, final_state=None, cu_seqlens=None, use_fused=False):
     """FlashKDA forward (Flash Kimi Delta Attention).
 
     Args:
@@ -25,12 +25,19 @@ def fwd(q, k, v, g, beta, scale, out, A_log, dt_bias, lower_bound, initial_state
             recurrent state. Same dtype/shape rules as ``initial_state``.
         cu_seqlens (torch.Tensor, optional): Cumulative sequence lengths, int64,
             shape ``[N+1]``. When provided, ``B`` must be 1.
+        use_fused (bool): Use the native FlashInfer-derived SM100/SM103 prefill
+            schedules. Defaults to ``False``.
 
     Notes:
         * Currently requires ``K = V = 128``.
         * All input tensors must be CUDA, contiguous, and have the dtypes
           listed above.
     """
+    if use_fused:
+        from .fused import fwd_fused
+        return fwd_fused(q, k, v, g, beta, scale, out, A_log, dt_bias, lower_bound,
+                         initial_state, final_state, cu_seqlens)
+
     B, T_seq, H = q.shape[0], q.shape[1], q.shape[2]
     T_total = B * T_seq
     N = cu_seqlens.numel() - 1 if cu_seqlens is not None else B

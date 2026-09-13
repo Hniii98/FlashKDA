@@ -1,0 +1,2 @@
+recursive-include csrc *.h *.cuh
+include LICENSE.flashinfer NOTICE.flashinfer

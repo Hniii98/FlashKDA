@@ -1,4 +1,5 @@
 #pragma once
+#include <cuda.h>
 #include <cuda_runtime.h>
 
 #include <cutlass/bfloat16.h>
@@ -25,3 +26,33 @@ void launch_fwd(
     float gate_scale,
     cudaStream_t stream
 );
+
+namespace flash_kda::fused {
+
+// All fused specializations share the same VTile Direct operands and schedule.
+struct FusedParams {
+    void *q, *k, *v, *g, *beta, *out;
+    void *A_log, *dt_bias;
+    void *initial_state, *final_state;
+    void *initial_state_f32, *final_state_f32;
+    int64_t const* cu_seqlens;
+    int const* seq_order;
+    int num_heads, num_sequences, seq_len;
+    int use_initial_state, store_final_state;
+    int64_t state_slot_stride;
+    float scale, lower_bound;
+};
+
+struct FusedTensorMaps {
+    CUtensorMap q, k, v, g, out;
+};
+
+void launch_fwd_fused(
+    FusedParams const& params,
+    int total_tokens,
+    bool full_chunks,
+    bool state_fp32,
+    cudaStream_t stream
+);
+
+} // namespace flash_kda::fused

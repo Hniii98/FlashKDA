@@ -65,7 +65,32 @@ Once installed, FlashKDA is auto-dispatched from `flash-linear-attention`'s `chu
 
 ## Performance
 
-See [BENCHMARK_H20.md](BENCHMARK_H20.md).
+See [BENCHMARK_H20.md](BENCHMARK_H20.md) and the VTile Direct comparison in
+[BENCHMARK_B300.md](BENCHMARK_B300.md).
+
+On SM100/SM103, `use_fused=True` selects one VTile Direct implementation in
+`csrc/smxx/fwd_kernel_fused.cuh`. Each CTA owns one sequence/head and processes
+32-token chunks. All head counts, fixed/packed layouts and BF16/FP32 state
+interfaces use this same implementation; there is no multi-kernel policy or
+registry. H64/H96 and full chunks have compile-time specializations of the same
+body. Other heads and non-default scalars use its runtime-parameter specialization.
+
+Fused requires contiguous BF16 Q/K/V/G/beta, K=V=128, FP32 gate parameters,
+finite scale and `lower_bound` in `[-5, 0]`. It supports optional initial/final
+state, in-place state updates, partial chunks and empty sequences. Tests use
+`atol=rtol=1e-2` against the references; the N32 arithmetic does not preserve
+K1/K2's exact N16 rounding.
+
+Warm each sequence layout before CUDA Graph capture. Packed offsets must be
+CUDA int64. The cached metadata sorts sequences by decreasing length; offsets
+must remain unchanged during graph replay. For offsets created inside
+`torch.inference_mode()`, supply a new tensor when changing the segmentation,
+because such tensors have no mutation version counter.
+
+```bash
+python benchmarks/generate_benchmark_md.py -o BENCHMARK_B300.md \
+  --device-label 'Blackwell / B300' --include-fused
+```
 
 ## Tests
 
@@ -74,6 +99,8 @@ bash tests/test.sh
 ```
 
 - `tests/test_fwd.py` — correctness tests (exact match against the torch reference; compared with `flash-linear-attention`)
+- `tests/test_fwd_fused.py` — VTile Direct vs torch/K1/K2/FLA, state and tail
+  handling, graph replay, and single-kernel launch checks for all benchmark shapes.
 
 
 ## Kernel API
@@ -82,7 +109,7 @@ bash tests/test.sh
 
 ```python
 flash_kda.fwd(q, k, v, g, beta, scale, out, A_log, dt_bias, lower_bound,
-              initial_state=None, final_state=None, cu_seqlens=None)
+              initial_state=None, final_state=None, cu_seqlens=None, use_fused=False)
 ```
 
 **Parameters:**

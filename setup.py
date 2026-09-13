@@ -58,7 +58,9 @@ ext_modules = [
         sources=[
             'csrc/flash_kda.cpp',
             'csrc/smxx/fwd_launch.cu',
+            'csrc/smxx/fwd_launch_fused.cu',
         ],
+        libraries=['cuda'],
         include_dirs=[
             os.path.join(this_dir, 'cutlass', 'include'),
             os.path.join(this_dir, 'cutlass', 'examples', 'common'),
@@ -98,6 +100,7 @@ setup(
     name='flash_kda',
     version='0.0.1' + rev,
     description='FlashKDA: Flash Kimi Delta Attention',
+    license_files=['LICENSE', 'LICENSE.flashinfer', 'NOTICE.flashinfer'],
     ext_modules=ext_modules,
     packages=['flash_kda'],
     cmdclass=cmdclass,

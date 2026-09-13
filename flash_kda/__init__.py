@@ -2,7 +2,7 @@ import torch
 from flash_kda_C import fwd as _fwd_raw, get_workspace_size
 
 
-def fwd(q, k, v, g, beta, scale, out, A_log, dt_bias, lower_bound, initial_state=None, final_state=None, cu_seqlens=None):
+def fwd(q, k, v, g, beta, scale, out, A_log, dt_bias, lower_bound, initial_state=None, final_state=None, cu_seqlens=None, use_fused=False):
     """FlashKDA forward (Flash Kimi Delta Attention).
 
     Args:
@@ -25,12 +25,22 @@ def fwd(q, k, v, g, beta, scale, out, A_log, dt_bias, lower_bound, initial_state
             recurrent state. Same dtype/shape rules as ``initial_state``.
         cu_seqlens (torch.Tensor, optional): Cumulative sequence lengths, int64,
             shape ``[N+1]``. When provided, ``B`` must be 1.
+        use_fused (bool): Use the single VTile Direct SM100/SM103 kernel.
+            Fused output follows ``atol=rtol=1e-2`` rather than K1/K2's exact
+            CHUNK=16 rounding. Warm the sequence metadata before graph capture.
 
     Notes:
         * Currently requires ``K = V = 128``.
         * All input tensors must be CUDA, contiguous, and have the dtypes
           listed above.
     """
+    if use_fused:
+        from .fused import prepare_metadata
+        seq_order, full_chunks = prepare_metadata(q, cu_seqlens)
+        return _fwd_raw(q, k, v, g, beta, float(scale), out, None, A_log, dt_bias, lower_bound,
+                        initial_state=initial_state, final_state=final_state, cu_seqlens=cu_seqlens,
+                        use_fused=True, seq_order=seq_order, full_chunks=full_chunks)
+
     B, T_seq, H = q.shape[0], q.shape[1], q.shape[2]
     T_total = B * T_seq
     N = cu_seqlens.numel() - 1 if cu_seqlens is not None else B

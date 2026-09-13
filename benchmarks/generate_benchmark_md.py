@@ -5,7 +5,8 @@ a benchmark markdown report.
 
 Reports mean latency for ``flash_kda (fp32 state)`` and ``fla_chunk_kda`` (FLA
 ``chunk_kda``), plus speedup ``chunk_mean / flash_mean``. Generated date is UTC,
-day precision only (YYYY-MM-DD).
+day precision only (YYYY-MM-DD). Pass ``--include-fused`` to also measure
+native fused forward on the same inputs and include its comparison columns.
 """
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ import argparse
 import ast
 import datetime as _dt
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -65,7 +67,7 @@ def run_bench(extra_argv: list[str]) -> str:
 def parse_stdout(text: str) -> list[dict]:
     """
     Each case: kind, T,H,D, warmup, iters, repeats, seq_lens (varlen), optional
-    flash_mean_ms, chunk_mean_ms (floats).
+    flash_mean_ms, fused_mean_ms, chunk_mean_ms (floats).
     """
     cases: list[dict] = []
     current: dict | None = None
@@ -90,6 +92,7 @@ def parse_stdout(text: str) -> list[dict]:
             "iters": iters,
             "repeats": repeats,
             "flash_mean_ms": None,
+            "fused_mean_ms": None,
             "chunk_mean_ms": None,
             "gdn_mean_ms": None,
         }
@@ -135,7 +138,9 @@ def parse_stdout(text: str) -> list[dict]:
         if m and current is not None:
             name, mean, _mn, _mx = m.groups()
             name = name.strip()
-            if "fp32 state" in name:
+            if name == "flash_kda_fused (fp32 state)":
+                current["fused_mean_ms"] = float(mean)
+            elif name == "flash_kda (fp32 state)":
                 current["flash_mean_ms"] = float(mean)
             elif name == "chunk_kda":
                 current["chunk_mean_ms"] = float(mean)
@@ -202,17 +207,35 @@ def _argv_with_h(argv: list[str], h: int) -> list[str]:
     return out
 
 
-def _complete_cases(raw: list[dict]) -> list[dict]:
+def _complete_cases(raw: list[dict], include_fused: bool = False) -> list[dict]:
     return [
         c
         for c in raw
         if c.get("flash_mean_ms") is not None
         and c.get("chunk_mean_ms") is not None
         and c.get("gdn_mean_ms") is not None
+        and (not include_fused or c.get("fused_mean_ms") is not None)
     ]
 
 
 def _render_table_block(cases: list[dict]) -> list[str]:
+    if cases and all(c.get("fused_mean_ms") is not None for c in cases):
+        lines = [
+            "| Case | `flash_kda` K1/K2 (ms) | `flash_kda_fused` (ms) | Speedup vs K1/K2 | "
+            "`fla_chunk_kda` (ms) | Fused speedup vs KDA | `fla_chunk_gdn` (ms) | Fused speedup vs GDN |",
+            "|:--|--:|--:|--:|--:|--:|--:|--:|",
+        ]
+        for c in cases:
+            flash, fused = c["flash_mean_ms"], c["fused_mean_ms"]
+            chunk, gdn = c["chunk_mean_ms"], c["gdn_mean_ms"]
+            cell = _case_detail(c).replace("|", "\\|")
+            lines.append(
+                f"| {cell} | {_fmt_ms(flash)} | {_fmt_ms(fused)} | {_fmt_speedup(fused, flash)} |"
+                f" {_fmt_ms(chunk)} | {_fmt_speedup(fused, chunk)} |"
+                f" {_fmt_ms(gdn)} | {_fmt_speedup(fused, gdn)} |"
+            )
+        return lines + [""]
+
     lines: list[str] = [
         "| Case | `flash_kda` mean (ms) | `fla_chunk_kda` mean (ms) | "
         "Speedup vs `chunk_kda` | `fla_chunk_gdn` mean (ms) | "
@@ -272,6 +295,13 @@ def render_markdown(
             f"`repeats={c0['repeats']}`"
         )
         lines.append("")
+        if any(c.get("fused_mean_ms") is not None for cases in sections for c in cases):
+            lines.extend([
+                "- Native columns use FP32 initial/final state, with the original BF16-rounded `arange` initial state.",
+                "- `flash_kda_fused` uses `use_fused=True`; all columns use the original eager CUDA Event timer.",
+                "- GDN is a different operator with a scalar gate; its latency is included as in the original report.",
+                "",
+            ])
         lines.append(FLA_CHUNK_KDA_OPTIONS_MD)
         lines.append(FLA_CHUNK_GDN_OPTIONS_MD)
         lines.append("")
@@ -303,24 +333,32 @@ def main() -> None:
         default=DEFAULT_DEVICE_LABEL,
         help=f"Device/platform label for the report title (default: {DEFAULT_DEVICE_LABEL!r})",
     )
+    p.add_argument("--include-fused", action="store_true",
+                   help="Compare native fused forward with K1/K2 and FLA")
     args, bench_extra = p.parse_known_args()
+    if args.include_fused:
+        bench_extra.append("--include-fused")
 
     def _fmt_generator_cmd(extra: list[str]) -> str:
-        cmd = "python benchmarks/generate_benchmark_md.py"
+        cmd = ["python", "benchmarks/generate_benchmark_md.py"]
         if args.output != DEFAULT_OUT:
-            cmd += f" -o {args.output}"
+            cmd.extend(["-o", str(args.output)])
         if args.device_label != DEFAULT_DEVICE_LABEL:
-            cmd += f" --device-label {args.device_label}"
-        tail = " ".join(extra)
-        return f"{cmd} {tail}".strip() if tail else cmd
+            cmd.extend(["--device-label", args.device_label])
+        return shlex.join(cmd + extra)
 
     argv_default = list(bench_extra)
     argv_h64 = _argv_with_h(bench_extra, 64)
 
+    print("Running bench_fwd.py (default H)...", flush=True)
     stdout_a = run_bench(argv_default)
+    print(stdout_a, end="", flush=True)
+    print("Running bench_fwd.py (H=64)...", flush=True)
     stdout_b = run_bench(argv_h64)
-    cases_a = _complete_cases(parse_stdout(stdout_a))
-    cases_b = _complete_cases(parse_stdout(stdout_b))
+    print(stdout_b, end="", flush=True)
+    include_fused = "--include-fused" in bench_extra
+    cases_a = _complete_cases(parse_stdout(stdout_a), include_fused)
+    cases_b = _complete_cases(parse_stdout(stdout_b), include_fused)
 
     sections: list[list[dict]] = [cases_a, cases_b]
 

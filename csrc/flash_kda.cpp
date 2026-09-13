@@ -1,5 +1,9 @@
 #include <torch/extension.h>
 #include <c10/cuda/CUDAStream.h>
+#include <c10/cuda/CUDAGuard.h>
+#include <c10/cuda/CUDAException.h>
+#include <cmath>
+#include <limits>
 #include "fwd.h"
 
 int64_t get_workspace_size(
@@ -33,18 +37,26 @@ void fwd(
     torch::Tensor beta,
     float scale,
     torch::Tensor out,
-    torch::Tensor workspace,
+    std::optional<torch::Tensor> workspace,
     torch::Tensor A_log,
     torch::Tensor dt_bias,
     double lower_bound,
     std::optional<torch::Tensor> initial_state = std::nullopt,
     std::optional<torch::Tensor> final_state = std::nullopt,
-    std::optional<torch::Tensor> cu_seqlens = std::nullopt
+    std::optional<torch::Tensor> cu_seqlens = std::nullopt,
+    bool use_fused = false,
+    std::optional<torch::Tensor> seq_order = std::nullopt,
+    bool full_chunks = false
 ) {
-    TORCH_CHECK(q.is_cuda() && k.is_cuda() && v.is_cuda() && g.is_cuda() && beta.is_cuda() && out.is_cuda() && workspace.is_cuda(),
+    TORCH_CHECK(q.is_cuda() && k.is_cuda() && v.is_cuda() && g.is_cuda() && beta.is_cuda() && out.is_cuda(),
                 "all tensors must be on CUDA");
-    TORCH_CHECK(q.is_contiguous() && k.is_contiguous() && v.is_contiguous() && g.is_contiguous() && beta.is_contiguous() && out.is_contiguous() && workspace.is_contiguous(),
+    c10::cuda::CUDAGuard device_guard(q.device());
+    TORCH_CHECK(q.is_contiguous() && k.is_contiguous() && v.is_contiguous() && g.is_contiguous() && beta.is_contiguous() && out.is_contiguous(),
                 "all tensors must be contiguous");
+    if (!use_fused) {
+        TORCH_CHECK(workspace && workspace->is_cuda() && workspace->is_contiguous(),
+                    "K1/K2 require a contiguous CUDA workspace");
+    }
 
     TORCH_CHECK(q.dtype() == torch::kBFloat16, "q must be bfloat16");
     TORCH_CHECK(k.dtype() == torch::kBFloat16, "k must be bfloat16");
@@ -127,12 +139,6 @@ void fwd(
     auto dt_bias_ptr = dt_bias.data_ptr<float>();
     float gate_scale = float(lower_bound * 1.4426950408889634);
 
-    // Transpose beta: [T_total, H] -> [H, T_total] (1D TMA, no T alignment constraint)
-    auto beta_t = beta_2d.t().contiguous();
-    auto beta_t_ptr = reinterpret_cast<cutlass::bfloat16_t const*>(beta_t.data_ptr<at::BFloat16>());
-
-    auto workspace_ptr = workspace.data_ptr();
-
     cudaStream_t stream = at::cuda::getCurrentCUDAStream().stream();
 
     constexpr int CHUNK = 16;
@@ -172,6 +178,46 @@ void fwd(
         TORCH_CHECK(fs.size(0) == N_val && fs.size(1) == H && fs.size(2) == D && fs.size(3) == D,
                      "final_state must be [N, H, D, D]");
     }
+
+    if (use_fused) {
+        int major, minor;
+        C10_CUDA_CHECK(cudaDeviceGetAttribute(&major, cudaDevAttrComputeCapabilityMajor, q.get_device()));
+        C10_CUDA_CHECK(cudaDeviceGetAttribute(&minor, cudaDevAttrComputeCapabilityMinor, q.get_device()));
+        TORCH_CHECK(major == 10 && (minor == 0 || minor == 3), "VTile fused requires SM100/SM103");
+        TORCH_CHECK(H > 0 && H <= std::numeric_limits<int>::max() &&
+                    T_total <= std::numeric_limits<int>::max() && N_val * H <= std::numeric_limits<int>::max(),
+                    "Fused shape exceeds supported indexing range");
+        TORCH_CHECK(std::isfinite(scale) && std::isfinite(lower_bound) && lower_bound >= -5.0 && lower_bound <= 0.0,
+                    "Fused requires finite scale and lower_bound in [-5, 0]");
+        TORCH_CHECK(seq_order && seq_order->device() == q.device() && seq_order->is_contiguous() &&
+                    seq_order->scalar_type() == torch::kInt32 && seq_order->dim() == 1 && seq_order->numel() == N_val,
+                    "Fused requires int32 seq_order[N] on the input device");
+        for (auto const& tensor : {k, v, g, beta, out, A_log, dt_bias})
+            TORCH_CHECK(tensor.device() == q.device(), "All fused tensors must share a device");
+        for (auto const& tensor : {initial_state, final_state, cu_seqlens})
+            if (tensor) TORCH_CHECK(tensor->device() == q.device() && tensor->is_contiguous(),
+                                    "Fused state and offsets must be contiguous on the input device");
+
+        flash_kda::fused::FusedParams params{};
+        params.q = q.data_ptr(); params.k = k.data_ptr(); params.v = v.data_ptr();
+        params.g = g.data_ptr(); params.beta = beta.data_ptr(); params.out = out.data_ptr();
+        params.A_log = A_log.data_ptr(); params.dt_bias = dt_bias.data_ptr();
+        params.initial_state = has_state_in ? initial_state->data_ptr() : nullptr;
+        params.final_state = has_state_out ? final_state->data_ptr() : nullptr;
+        params.initial_state_f32 = params.initial_state; params.final_state_f32 = params.final_state;
+        params.use_initial_state = has_state_in; params.store_final_state = has_state_out;
+        params.cu_seqlens = cu_seqlens_dev; params.seq_order = seq_order->data_ptr<int>();
+        params.num_heads = H; params.num_sequences = N_val; params.seq_len = T_seq;
+        params.state_slot_stride = H * D * D; params.scale = scale; params.lower_bound = lower_bound;
+        flash_kda::fused::launch_fwd_fused(params, T_total, full_chunks, state_fp32, stream);
+        C10_CUDA_KERNEL_LAUNCH_CHECK();
+        return;
+    }
+
+    // K1/K2 consume transposed beta; fused consumes the original tensor directly.
+    auto beta_t = beta_2d.t().contiguous();
+    auto beta_t_ptr = reinterpret_cast<cutlass::bfloat16_t const*>(beta_t.data_ptr<at::BFloat16>());
+    auto workspace_ptr = workspace->data_ptr();
 
     int total_tiles;
     if (is_varlen) {
@@ -223,7 +269,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
         py::arg("workspace"),
         py::arg("A_log"), py::arg("dt_bias"), py::arg("lower_bound"),
         py::arg("initial_state") = py::none(), py::arg("final_state") = py::none(),
-        py::arg("cu_seqlens") = py::none());
+        py::arg("cu_seqlens") = py::none(), py::arg("use_fused") = false,
+        py::arg("seq_order") = py::none(), py::arg("full_chunks") = false);
     m.def("get_workspace_size",
         static_cast<int64_t(*)(int64_t, int64_t, int64_t)>(&get_workspace_size),
         "Get workspace size in bytes",

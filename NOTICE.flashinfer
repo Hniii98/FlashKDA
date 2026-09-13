@@ -1,0 +1,17 @@
+FlashInfer KDA VTile Direct prefill kernel
+Copyright (c) 2026 NVIDIA CORPORATION. All rights reserved.
+Licensed under the Apache License, Version 2.0 (LICENSE.flashinfer).
+
+Source: https://github.com/flashinfer-ai/flashinfer
+Commit: c9f0f0d90a22b1734733297ec09f0f44d21927cf
+
+The implementation in csrc/smxx/fwd_kernel_fused.cuh is adapted from:
+  flashkda_bf16_fused_m128_vtile_d589dad375
+  flashkda_bf16_fused_m128_vtile_4b7d3b6523
+
+Local modifications: renamed layouts and operands, reused scalar utilities,
+removed unused helpers and serving/checkpoint paths, passed TMA descriptors
+as grid-constant parameters, and added general head counts, packed sequence
+boundaries, tail handling, optional state and empty-sequence handling.
+All fused calls use the VTile Direct arithmetic and CTA/warp schedule.
+No upstream multi-family policy or generated dispatch registry is included.
